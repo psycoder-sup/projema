@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+
+jobs:
+  ci:
+    name: Lint, Typecheck, Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      AUTH_SECRET: ci-test-secret-minimum-32-chars-long!!
+      AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: fake-google-id
+      GOOGLE_CLIENT_SECRET: fake-google-secret
+      GITHUB_CLIENT_ID: fake-github-id
+      GITHUB_CLIENT_SECRET: fake-github-secret
+      POSTHOG_API_KEY: phx_test
+      NEXT_PUBLIC_POSTHOG_KEY: phx_test
+      NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com
+      APP_BASE_URL: http://localhost:3000
+      CRON_SECRET: ci-cron-secret
+      ORG_TIMEZONE: UTC
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Step 1: Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Step 2: Lint
+      - name: Lint
+        run: pnpm lint
+
+      # Step 3: Typecheck
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Step 4: Unit tests (Vitest)
+      - name: Unit tests
+        run: pnpm test:unit
+
+      # Step 5: Integration tests (Vitest + Testcontainers)
+      # Requires Docker-in-Docker; runs on main branch and PRs with Docker available.
+      - name: Integration tests
+        run: pnpm test:integration
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          DOCKER_HOST: unix:///var/run/docker.sock
+
+      # Build before E2E so we have a production server to test against
+      - name: Build
+        run: pnpm build
+        env:
+          SENTRY_ENABLED: "false"
+          SKIP_ENV_VALIDATION: "true"
+
+      # Step 6: E2E smoke test (Playwright)
+      - name: E2E smoke test
+        run: pnpm test:e2e:ci
+        env:
+          APP_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
