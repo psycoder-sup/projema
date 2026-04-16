@@ -42,8 +42,12 @@ describe('Prisma migrations', () => {
     expect(result.rows.length).toBe(1);
   });
 
-  it('migration history has at least one entry', async () => {
-    const result = await client.query('SELECT id FROM _prisma_migrations LIMIT 1');
-    expect(result.rows.length).toBeGreaterThanOrEqual(0); // empty schema is OK; at least the table exists
+  it('creates the Auth.js adapter tables', async () => {
+    const result = await client.query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      AND tablename IN ('users', 'accounts', 'sessions', 'verification_tokens')
+    `);
+    expect(result.rows.length).toBe(4);
   });
 });
