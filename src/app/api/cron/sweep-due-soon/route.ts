@@ -1,15 +1,9 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { validateCronSecret } from '../../../../server/jobs/cron';
+// sweep-due-soon: sweep due-soon notifications. Fires every 15 minutes.
+import { validateCronSecret, notImplementedResponse } from '@/server/jobs/cron';
 
-/**
- * Vercel Cron: sweep due-soon notifications.
- * Fires every 15 minutes. Phase 6 implementation — Phase 0 returns 501.
- */
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  if (!validateCronSecret(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(req: Request) {
+  if (!validateCronSecret(req)) {
+    return new Response('Unauthorized', { status: 401 });
   }
-
-  // Phase 6: implement sweepDueSoonNotifications()
-  return NextResponse.json({ error: 'Not implemented' }, { status: 501 });
+  return notImplementedResponse('sweep-due-soon');
 }

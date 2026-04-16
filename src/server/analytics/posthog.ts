@@ -3,22 +3,18 @@
  * Phase 0: initialized but no events fired yet. Events land in Phase 7.
  */
 import { PostHog } from 'posthog-node';
+import { env } from '@/lib/env';
 
 let _posthog: PostHog | null = null;
 
 function getPostHogClient(): PostHog {
   if (!_posthog) {
-    const apiKey = process.env['POSTHOG_API_KEY'];
-    const host = process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://app.posthog.com';
-
-    _posthog = new PostHog(apiKey ?? 'phx_placeholder', {
-      host,
+    _posthog = new PostHog(env.POSTHOG_API_KEY, {
+      host: env.NEXT_PUBLIC_POSTHOG_HOST,
       // Disable in test/development unless explicitly enabled
       disabled:
-        !apiKey ||
-        apiKey === 'phx_placeholder' ||
-        (process.env['NODE_ENV'] !== 'production' &&
-          process.env['POSTHOG_ENABLED'] !== 'true'),
+        process.env['NODE_ENV'] !== 'production' &&
+        process.env['POSTHOG_ENABLED'] !== 'true',
     });
   }
   return _posthog;
@@ -47,5 +43,3 @@ export async function emitEvent(
     // Analytics failures are non-fatal — never bubble up to the caller
   }
 }
-
-export { getPostHogClient };

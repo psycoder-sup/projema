@@ -1,23 +1,21 @@
-/**
- * Auth.js v5 configuration.
- * Phase 0 stub — allowlist logic, sessions_log writes, and PostHog events land in Phase 1.
- */
+// Auth.js v5 config. Phase 1 will enforce allowlist via signIn callback and emit sign-in events.
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import type { NextAuthConfig } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { prisma } from '../db/client';
+import { env } from '@/lib/env';
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
-      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] ?? '',
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
     }),
     GitHubProvider({
-      clientId: process.env['GITHUB_CLIENT_ID'] ?? '',
-      clientSecret: process.env['GITHUB_CLIENT_SECRET'] ?? '',
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
     }),
   ],
   session: {
@@ -30,7 +28,6 @@ export const authConfig: NextAuthConfig = {
     error: '/sign-in',
   },
   callbacks: {
-    // Phase 1: add allowlist check here
     async signIn() {
       return true;
     },
@@ -42,7 +39,6 @@ export const authConfig: NextAuthConfig = {
     },
   },
   events: {
-    // Phase 1: write sessions_log + update last_seen_at + emit PostHog session_started
     async signIn() {
       // no-op in Phase 0
     },
