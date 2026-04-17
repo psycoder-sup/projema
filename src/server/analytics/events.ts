@@ -14,7 +14,7 @@ import { emitEvent, type PostHogSink } from './posthog';
 export type AnalyticsEvent =
   | {
       name: 'session_started';
-      props: { userId: string; provider: 'google' | 'github' };
+      props: { userId: string; provider: 'google' };
     }
   | {
       name: 'sprint_created';

@@ -33,8 +33,6 @@ export default defineConfig({
             AUTH_SECRET: process.env['AUTH_SECRET'] ?? 'ci-test-secret-minimum-32-chars-long!!',
             GOOGLE_CLIENT_ID: process.env['GOOGLE_CLIENT_ID'] ?? 'fake-google-id',
             GOOGLE_CLIENT_SECRET: process.env['GOOGLE_CLIENT_SECRET'] ?? 'fake-google-secret',
-            GITHUB_CLIENT_ID: process.env['GITHUB_CLIENT_ID'] ?? 'fake-github-id',
-            GITHUB_CLIENT_SECRET: process.env['GITHUB_CLIENT_SECRET'] ?? 'fake-github-secret',
             AUTH_URL: BASE_URL,
             CRON_SECRET: process.env['CRON_SECRET'] ?? 'fake-cron-secret',
             APP_BASE_URL: BASE_URL,

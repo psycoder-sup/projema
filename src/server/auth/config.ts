@@ -2,7 +2,6 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import type { NextAuthConfig } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import GitHubProvider from 'next-auth/providers/github';
 import { prisma } from '../db/client';
 import { env } from '@/lib/env';
 import { handleSignInCallback, recordSignIn } from './allowlist';
@@ -14,10 +13,11 @@ export const authConfig: NextAuthConfig = {
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
-    }),
-    GitHubProvider({
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
+      // Link Google OAuth to an existing user row matched by email.
+      // Our signIn callback pre-creates the User (bootstrap-admin / allowlist admit) before
+      // the adapter persists the Account, so without this flag the adapter returns
+      // OAuthAccountNotLinked. Safe: Google is the only provider and the email is verified.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
@@ -35,7 +35,7 @@ export const authConfig: NextAuthConfig = {
       const email = user.email ?? '';
       const displayName = user.name ?? email;
       const avatarUrl = user.image ?? null;
-      const provider = (account?.provider ?? 'google') as 'google' | 'github';
+      const provider = (account?.provider ?? 'google') as 'google';
 
       if (!email) return '/sign-in?error=no_email';
 
@@ -71,7 +71,7 @@ export const authConfig: NextAuthConfig = {
   events: {
     async signIn({ user, account }) {
       if (!user.id) return;
-      const provider = (account?.provider ?? 'google') as 'google' | 'github';
+      const provider = (account?.provider ?? 'google') as 'google';
       await recordSignIn({ userId: user.id, provider });
       // Emit post-signIn (after sessions_log write, non-fatal)
       void track({

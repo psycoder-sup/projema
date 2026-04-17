@@ -1,6 +1,6 @@
 /**
  * Sign-in page — FR-01, FR-02.
- * Shows Google + GitHub OAuth buttons.
+ * Shows a Google OAuth button.
  * Reads ?error=not_allowlisted and shows the PRD error card.
  */
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,16 +64,6 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
           >
             <Button type="submit" variant="outline" className="w-full">
               Continue with Google
-            </Button>
-          </form>
-          <form
-            action={async () => {
-              'use server';
-              await signIn('github', { redirectTo: '/' });
-            }}
-          >
-            <Button type="submit" variant="outline" className="w-full">
-              Continue with GitHub
             </Button>
           </form>
           <p className="text-center text-xs text-muted-foreground">

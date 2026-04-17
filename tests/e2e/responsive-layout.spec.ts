@@ -38,12 +38,11 @@ for (const vp of VIEWPORTS) {
     expect(scrollWidth).toBeLessThanOrEqual(innerWidth + 1);
   });
 
-  test(`sign-in page — OAuth buttons visible at ${vp.label}`, async ({ page }) => {
+  test(`sign-in page — OAuth button visible at ${vp.label}`, async ({ page }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await page.goto('/sign-in');
 
     await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /github/i })).toBeVisible();
   });
 }
 

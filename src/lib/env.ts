@@ -16,8 +16,6 @@ export const envSchema = z.object({
   AUTH_URL: z.string().url('AUTH_URL must be a valid URL').optional(),
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
-  GITHUB_CLIENT_ID: z.string().min(1, 'GITHUB_CLIENT_ID is required'),
-  GITHUB_CLIENT_SECRET: z.string().min(1, 'GITHUB_CLIENT_SECRET is required'),
 
   // PostHog
   POSTHOG_API_KEY: z.string().min(1, 'POSTHOG_API_KEY is required'),
@@ -68,8 +66,6 @@ function getEnv(): Env {
         AUTH_URL: process.env['AUTH_URL'] ?? 'http://localhost:3000',
         GOOGLE_CLIENT_ID: process.env['GOOGLE_CLIENT_ID'] ?? 'test-google-id',
         GOOGLE_CLIENT_SECRET: process.env['GOOGLE_CLIENT_SECRET'] ?? 'test-google-secret',
-        GITHUB_CLIENT_ID: process.env['GITHUB_CLIENT_ID'] ?? 'test-github-id',
-        GITHUB_CLIENT_SECRET: process.env['GITHUB_CLIENT_SECRET'] ?? 'test-github-secret',
         POSTHOG_API_KEY: process.env['POSTHOG_API_KEY'] ?? 'phx_test',
         NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'] ?? 'phx_test',
         NEXT_PUBLIC_POSTHOG_HOST:

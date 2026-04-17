@@ -70,7 +70,7 @@ describe('FR-28: adminGetWau returns correct WAU counts', () => {
     // u1: session 1 day ago — within 7-day window
     await seedSessionLog({ userId: u1.id, provider: 'google', createdAt: new Date(daysAgo(1)) });
     // u2: session 3 days ago — within 7-day window
-    await seedSessionLog({ userId: u2.id, provider: 'github', createdAt: new Date(daysAgo(3)) });
+    await seedSessionLog({ userId: u2.id, provider: 'google', createdAt: new Date(daysAgo(3)) });
     // u3: session 10 days ago — outside 7-day window
     await seedSessionLog({ userId: u3.id, provider: 'google', createdAt: new Date(daysAgo(10)) });
 

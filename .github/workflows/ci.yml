@@ -51,8 +51,6 @@ jobs:
       AUTH_URL: http://localhost:3000
       GOOGLE_CLIENT_ID: fake-google-id
       GOOGLE_CLIENT_SECRET: fake-google-secret
-      GITHUB_CLIENT_ID: fake-github-id
-      GITHUB_CLIENT_SECRET: fake-github-secret
       POSTHOG_API_KEY: phx_test
       NEXT_PUBLIC_POSTHOG_KEY: phx_test
       NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com
@@ -116,8 +114,6 @@ jobs:
       AUTH_URL: http://localhost:3000
       GOOGLE_CLIENT_ID: fake-google-id
       GOOGLE_CLIENT_SECRET: fake-google-secret
-      GITHUB_CLIENT_ID: fake-github-id
-      GITHUB_CLIENT_SECRET: fake-github-secret
       POSTHOG_API_KEY: phx_test
       NEXT_PUBLIC_POSTHOG_KEY: phx_test
       NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com

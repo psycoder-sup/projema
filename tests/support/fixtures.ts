@@ -117,7 +117,7 @@ export async function seedSessionLog({
   createdAt,
 }: {
   userId: string;
-  provider: 'google' | 'github';
+  provider: 'google';
   createdAt?: Date;
 }): Promise<void> {
   await getDb().sessionsLog.create({

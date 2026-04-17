@@ -124,10 +124,10 @@ CREATE TABLE IF NOT EXISTS "sessions_log" (
   CONSTRAINT "sessions_log_pkey" PRIMARY KEY ("id")
 );
 
--- CHECK constraint: provider must be 'google' or 'github'
+-- CHECK constraint: provider must be 'google'
 ALTER TABLE "sessions_log"
   ADD CONSTRAINT "sessions_log_provider_check"
-  CHECK ("provider" IN ('google', 'github'));
+  CHECK ("provider" IN ('google'));
 
 CREATE INDEX IF NOT EXISTS "sessions_log_user_id_created_at_idx"
   ON "sessions_log"("user_id", "created_at" DESC);

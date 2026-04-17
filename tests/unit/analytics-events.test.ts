@@ -104,7 +104,7 @@ describe('track() with injectable test sink', () => {
 
     await track({
       name: 'session_started',
-      props: { userId: 'u-abc', provider: 'github' },
+      props: { userId: 'u-abc', provider: 'google' },
     });
 
     expect(captured[0]?.distinctId).toBe('u-abc');

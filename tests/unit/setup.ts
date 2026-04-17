@@ -11,8 +11,6 @@ Object.assign(process.env, {
   AUTH_SECRET: 'test-secret-minimum-32-chars-long!!',
   GOOGLE_CLIENT_ID: 'test-google-id',
   GOOGLE_CLIENT_SECRET: 'test-google-secret',
-  GITHUB_CLIENT_ID: 'test-github-id',
-  GITHUB_CLIENT_SECRET: 'test-github-secret',
   AUTH_URL: 'http://localhost:3000',
   POSTHOG_API_KEY: 'phx_test',
   NEXT_PUBLIC_POSTHOG_KEY: 'phx_test',

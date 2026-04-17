@@ -37,10 +37,9 @@ test('unauthenticated request to /todos redirects to /sign-in', async ({ page })
 // Sign-in page (public — no OAuth needed)
 // ---------------------------------------------------------------------------
 
-test('sign-in page renders Google and GitHub buttons', async ({ page }) => {
+test('sign-in page renders the Google button', async ({ page }) => {
   await page.goto('/sign-in');
   await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /github/i })).toBeVisible();
 });
 
 test('sign-in page has no email/password form (FR-01)', async ({ page }) => {

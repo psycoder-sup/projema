@@ -9,7 +9,7 @@ export type SignInInput = {
   email: string;
   displayName: string;
   avatarUrl: string | null;
-  provider: 'google' | 'github';
+  provider: 'google';
 };
 
 export type SignInResult =
@@ -114,7 +114,7 @@ export async function recordSignIn({
   provider,
 }: {
   userId: string;
-  provider: 'google' | 'github';
+  provider: 'google';
 }): Promise<void> {
   await prisma.$transaction([
     prisma.sessionsLog.create({

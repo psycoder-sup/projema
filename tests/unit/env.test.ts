@@ -10,8 +10,6 @@ const validEnv = {
   AUTH_SECRET: 'super-secret-value-at-least-32-chars-long',
   GOOGLE_CLIENT_ID: 'google-client-id',
   GOOGLE_CLIENT_SECRET: 'google-client-secret',
-  GITHUB_CLIENT_ID: 'github-client-id',
-  GITHUB_CLIENT_SECRET: 'github-client-secret',
   AUTH_URL: 'http://localhost:3000',
   POSTHOG_API_KEY: 'phx_test_key',
   NEXT_PUBLIC_POSTHOG_KEY: 'phx_public_key',

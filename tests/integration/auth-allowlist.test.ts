@@ -42,14 +42,14 @@ afterAll(async () => {
 });
 
 // ============================================================================
-// FR-01: Google + GitHub are the only sign-in options
+// FR-01: Google is the only sign-in option
 // ============================================================================
 
-describe('FR-01: Google + GitHub are the only sign-in options', () => {
-  test('auth config exposes exactly google and github providers', async () => {
+describe('FR-01: Google is the only sign-in option', () => {
+  test('auth config exposes exactly the google provider', async () => {
     const { authConfig } = await import('@/server/auth/config');
     const ids = (authConfig.providers as Array<{ id: string }>).map((p) => p.id).sort();
-    expect(ids).toEqual(['github', 'google']);
+    expect(ids).toEqual(['google']);
   });
 });
 
@@ -82,7 +82,7 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
       email: 'stranger@example.com',
       displayName: 'Stranger',
       avatarUrl: null,
-      provider: 'github',
+      provider: 'google',
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('not_allowlisted');
@@ -206,7 +206,7 @@ describe('FR-28: sessions_log written on sign-in', () => {
     const { recordSignIn } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     const before = new Date();
-    await recordSignIn({ userId: admin.id, provider: 'github' });
+    await recordSignIn({ userId: admin.id, provider: 'google' });
 
     const user = await getDb().user.findUnique({ where: { id: admin.id } });
     expect(user?.lastSeenAt).not.toBeNull();
@@ -217,7 +217,7 @@ describe('FR-28: sessions_log written on sign-in', () => {
     const { recordSignIn } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     await recordSignIn({ userId: admin.id, provider: 'google' });
-    await recordSignIn({ userId: admin.id, provider: 'github' });
+    await recordSignIn({ userId: admin.id, provider: 'google' });
 
     const logs = await getDb().sessionsLog.findMany({ where: { userId: admin.id } });
     expect(logs.length).toBe(2);
