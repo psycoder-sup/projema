@@ -1,0 +1,2 @@
+- [Project profile: sprint-todo-management](project_sprint_todo.md) — greenfield internal web app, ~15 users, single org, web-only, Google/GitHub SSO, in-app notifications.
+- [Docs layout](reference_docs_layout.md) — PRDs and SPECs live at docs/feature/<feature-name>/<feature-name>-prd.md / -spec.md.

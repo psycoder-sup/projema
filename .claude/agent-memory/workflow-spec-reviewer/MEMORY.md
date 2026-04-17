@@ -1,0 +1,1 @@
+- [Project profile: sprint-todo-management](project_sprint_todo.md) — greenfield internal web app, Next 14+ App Router, Prisma+Postgres, Auth.js, shadcn/ui, ~15 users, single org.
