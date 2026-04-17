@@ -82,7 +82,7 @@ export function TeamActivityCard({ events }: TeamActivityCardProps) {
       <CardContent className="flex-1">
         {events.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">
-            No team activity yet.
+            Activity will appear here as your team uses the app.
           </p>
         ) : (
           <div className="divide-y divide-border">

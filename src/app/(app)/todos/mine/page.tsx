@@ -58,7 +58,7 @@ export default async function MyTodosPage({ searchParams }: MyTodosPageProps) {
 
       {todos.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p>No todos assigned to you.</p>
+          <p>Nothing on your plate. Pick up a todo from the sprint board or create one.</p>
         </div>
       ) : (
         <div className="space-y-2">

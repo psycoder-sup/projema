@@ -91,12 +91,11 @@ export default async function SprintsPage() {
 
       {sprints.length === 0 && result.ok && (
         <div className="text-center py-16 text-muted-foreground">
-          <p className="text-lg">No sprints yet.</p>
+          <p className="text-lg">No sprints yet. Plan your first sprint.</p>
           <p className="text-sm mt-1">
             <Link href="/sprints/new" className="underline">
-              Create your first sprint
-            </Link>{' '}
-            to get started.
+              New sprint
+            </Link>
           </p>
         </div>
       )}

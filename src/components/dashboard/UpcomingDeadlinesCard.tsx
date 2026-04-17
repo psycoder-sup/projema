@@ -63,7 +63,7 @@ export function UpcomingDeadlinesCard({ todos }: UpcomingDeadlinesCardProps) {
       <CardContent className="flex-1">
         {todos.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">
-            No upcoming deadlines in the next 7 days.
+            No todos due in the next 7 days.
           </p>
         ) : (
           <div className="divide-y divide-border">

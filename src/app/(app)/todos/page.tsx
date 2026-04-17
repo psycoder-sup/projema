@@ -60,7 +60,7 @@ export default async function BacklogPage({ searchParams }: BacklogPageProps) {
 
       {todos.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p>No backlog todos found.</p>
+          <p>No backlog todos. Use Backlog to park work that isn&apos;t in a sprint yet.</p>
         </div>
       ) : (
         <div className="space-y-2">

@@ -114,7 +114,7 @@ export function ActiveSprintCard({ data }: ActiveSprintCardProps) {
         {data === null ? (
           <div className="flex flex-col items-start gap-3 py-2">
             <p className="text-sm text-muted-foreground">
-              No active sprint. Create one and mark it active to start tracking.
+              No active sprint — plan one to start tracking goals.
             </p>
             <Button asChild size="sm" variant="outline">
               <Link href="/sprints/new">Create sprint</Link>

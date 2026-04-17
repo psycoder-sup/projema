@@ -76,7 +76,7 @@ export function MyTodosCard({ todos }: MyTodosCardProps) {
         {todos.length === 0 ? (
           <div className="flex flex-col items-start gap-3 py-2">
             <p className="text-sm text-muted-foreground">
-              Nothing on your plate. Take a look at the backlog.
+              Nothing on your plate. Pick up a todo from the sprint board or create one.
             </p>
             <Link
               href="/todos"

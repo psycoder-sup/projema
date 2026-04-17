@@ -42,6 +42,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Skip link for keyboard users — WCAG 2.4.1 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center gap-4 px-4">
           {/* App name / logo */}
@@ -86,7 +93,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full p-0"
+                  aria-label="Account menu"
+                >
                   <Avatar
                     src={user.image ?? null}
                     alt={user.name ?? user.email ?? 'User'}
@@ -125,7 +136,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <PostHogPageView />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">{children}</main>
     </div>
   );
 }

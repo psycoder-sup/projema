@@ -90,7 +90,7 @@ export default async function AdminMembersPage() {
         <CardContent>
           <AddAllowlistForm addEmail={handleAddEmail} />
           {allowlist.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No emails in allowlist.</p>
+            <p className="text-sm text-muted-foreground">No allowlist entries yet.</p>
           ) : (
             <div className="divide-y">
               {allowlist.map((entry) => (

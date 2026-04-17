@@ -11,24 +11,38 @@ env:
   PNPM_VERSION: "9"
 
 jobs:
-  ci:
-    name: Lint, Typecheck, Test
+  # ── Lint + Typecheck (runs in parallel with tests) ─────────────────────────
+  quality:
+    name: Lint & Typecheck
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: testdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+  # ── Unit + Integration tests ───────────────────────────────────────────────
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
@@ -47,6 +61,21 @@ jobs:
       ORG_TIMEZONE: UTC
       NODE_ENV: test
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,40 +91,88 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # Step 1: Install dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Step 2: Lint
-      - name: Lint
-        run: pnpm lint
-
-      # Step 3: Typecheck
-      - name: Typecheck
-        run: pnpm typecheck
-
-      # Step 4: Unit tests (Vitest)
       - name: Unit tests
         run: pnpm test:unit
 
-      # Step 5: Integration tests (Vitest + Testcontainers)
-      # Requires Docker-in-Docker; runs on main branch and PRs with Docker available.
       - name: Integration tests
         run: pnpm test:integration
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           DOCKER_HOST: unix:///var/run/docker.sock
 
-      # Build before E2E so we have a production server to test against
+  # ── E2E smoke tests (depends on test + quality) ────────────────────────────
+  e2e:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [quality, test]
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      AUTH_SECRET: ci-test-secret-minimum-32-chars-long!!
+      AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: fake-google-id
+      GOOGLE_CLIENT_SECRET: fake-google-secret
+      GITHUB_CLIENT_ID: fake-github-id
+      GITHUB_CLIENT_SECRET: fake-github-secret
+      POSTHOG_API_KEY: phx_test
+      NEXT_PUBLIC_POSTHOG_KEY: phx_test
+      NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com
+      APP_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      CRON_SECRET: ci-cron-secret
+      ORG_TIMEZONE: UTC
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      # Build the app (production mode) before E2E
       - name: Build
         run: pnpm build
         env:
           SENTRY_ENABLED: "false"
           SKIP_ENV_VALIDATION: "true"
 
-      # Step 6: E2E smoke test (Playwright)
-      - name: E2E smoke test
+      # Run migrations so the app has a working DB schema for E2E
+      - name: Migrate DB
+        run: pnpm db:migrate
+
+      - name: E2E smoke tests (Chromium)
         run: pnpm test:e2e:ci
-        env:
-          APP_BASE_URL: http://localhost:3000
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
