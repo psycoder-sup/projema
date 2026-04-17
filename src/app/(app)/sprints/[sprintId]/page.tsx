@@ -9,6 +9,7 @@ import { getSprintDetail } from '@/server/actions/sprints';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NewTodoButton } from '@/components/todos/NewTodoButton';
 import type { User } from '@/types/domain';
 
 interface SprintDetailPageProps {
@@ -80,6 +81,7 @@ export default async function SprintDetailPage({ params }: SprintDetailPageProps
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <NewTodoButton actor={actor} sprintId={sprint.id} />
           <Button variant="outline" asChild size="sm">
             <Link href={`/sprints/${sprint.id}/edit`}>Edit</Link>
           </Button>
@@ -96,8 +98,14 @@ export default async function SprintDetailPage({ params }: SprintDetailPageProps
             const goalTodos = todosGrouped.byGoal[goal.id] ?? [];
             return (
               <Card key={goal.id}>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
                   <CardTitle className="text-base">{goal.name}</CardTitle>
+                  <NewTodoButton
+                    actor={actor}
+                    sprintId={sprint.id}
+                    sprintGoalId={goal.id}
+                    label="Add todo"
+                  />
                 </CardHeader>
                 <CardContent>
                   {goalTodos.length === 0 ? (

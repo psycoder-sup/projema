@@ -8,6 +8,7 @@ import { auth } from '@/server/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/server/db/client';
 import { TodoListItem } from '@/components/todos/TodoListItem';
+import { NewTodoButton } from '@/components/todos/NewTodoButton';
 import type { TodoStatus, TodoPriority } from '@/types/domain';
 
 interface BacklogPageProps {
@@ -55,7 +56,12 @@ export default async function BacklogPage({ searchParams }: BacklogPageProps) {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Backlog</h1>
-        <span className="text-sm text-muted-foreground">{todos.length} todo{todos.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {todos.length} todo{todos.length !== 1 ? 's' : ''}
+          </span>
+          <NewTodoButton actor={actor} />
+        </div>
       </div>
 
       {todos.length === 0 ? (
