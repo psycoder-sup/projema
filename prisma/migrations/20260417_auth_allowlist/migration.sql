@@ -1,6 +1,9 @@
 -- Phase 1: Auth + Admin allowlist domain models
 -- Extends Phase 0 Auth.js adapter tables with full domain fields.
 
+-- Ensure pgcrypto is available (idempotent)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- ============================================================================
 -- Alter users table: add domain columns
 -- ============================================================================
@@ -10,9 +13,9 @@ ALTER TABLE "users"
   ADD COLUMN IF NOT EXISTS "avatar_url" TEXT,
   ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'member',
   ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN IF NOT EXISTS "last_seen_at" TIMESTAMP(3),
-  ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+  ADD COLUMN IF NOT EXISTS "last_seen_at" TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- Make email NOT NULL (it was nullable in Phase 0)
 -- First populate any null emails if any exist
@@ -93,10 +96,10 @@ ALTER TABLE "accounts"
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS "allowlist_entries" (
-  "id"               TEXT        NOT NULL,
+  "id"               UUID        NOT NULL DEFAULT gen_random_uuid(),
   "email"            TEXT        NOT NULL,
-  "added_by_user_id" TEXT        NOT NULL,
-  "added_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "added_by_user_id" UUID        NOT NULL,
+  "added_at"         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT "allowlist_entries_pkey" PRIMARY KEY ("id")
 );
@@ -113,10 +116,10 @@ ALTER TABLE "allowlist_entries"
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS "sessions_log" (
-  "id"         TEXT        NOT NULL,
-  "user_id"    TEXT        NOT NULL,
+  "id"         UUID        NOT NULL DEFAULT gen_random_uuid(),
+  "user_id"    UUID        NOT NULL,
   "provider"   TEXT        NOT NULL,
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT "sessions_log_pkey" PRIMARY KEY ("id")
 );

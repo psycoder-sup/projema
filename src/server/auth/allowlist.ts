@@ -28,23 +28,17 @@ export type SignInResult =
 export async function handleSignInCallback(input: SignInInput): Promise<SignInResult> {
   const email = input.email.toLowerCase();
 
-  // Check if this is the bootstrap case (empty users AND empty allowlist)
-  const [userCount, allowlistCount] = await prisma.$transaction([
-    prisma.user.count(),
-    prisma.allowlistEntry.count(),
-  ]);
-
-  if (userCount === 0 && allowlistCount === 0) {
-    // Bootstrap: first user becomes admin in a serializable transaction
-    const user = await prisma.$transaction(
-      async (tx) => {
-        // Re-check inside transaction to prevent race
-        const count = await tx.user.count();
-        if (count > 0) {
-          // Another concurrent signup beat us — fall through
-          return null;
-        }
-        return tx.user.create({
+  // Bootstrap check + conditional admin creation — all inside a single serializable
+  // transaction so the "is DB empty?" question and the insert are fully atomic against
+  // concurrent first-signups.
+  const bootstrap = await prisma.$transaction(
+    async (tx) => {
+      const [userCount, allowlistCount] = await Promise.all([
+        tx.user.count(),
+        tx.allowlistEntry.count(),
+      ]);
+      if (userCount === 0 && allowlistCount === 0) {
+        const user = await tx.user.create({
           data: {
             email,
             displayName: input.displayName,
@@ -53,17 +47,15 @@ export async function handleSignInCallback(input: SignInInput): Promise<SignInRe
             isActive: true,
           },
         });
-      },
-      { isolationLevel: 'Serializable' }
-    );
+        return { kind: 'bootstrapped' as const, user };
+      }
+      return { kind: 'not_bootstrap' as const };
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
-    if (user) {
-      return {
-        ok: true,
-        user: mapUser(user),
-      };
-    }
-    // If user is null, another signup completed first — fall through to allowlist check
+  if (bootstrap.kind === 'bootstrapped') {
+    return { ok: true, user: mapUser(bootstrap.user) };
   }
 
   // Check allowlist (case-insensitive via lowercased storage)
