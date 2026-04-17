@@ -16,6 +16,7 @@ datasource db {
 // ============================================================================
 // Domain Models — Phase 1
 // ============================================================================
+// NOTE: No @updatedAt directive on any model — DB triggers handle updated_at.
 
 model User {
   id          String    @id @default(uuid()) @db.Uuid
@@ -28,10 +29,14 @@ model User {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
 
-  accounts        Account[]
-  sessions        Session[]
-  allowlistAdded  AllowlistEntry[] @relation("AllowlistAddedBy")
-  sessionsLog     SessionsLog[]
+  accounts           Account[]
+  sessions           Session[]
+  allowlistAdded     AllowlistEntry[] @relation("AllowlistAddedBy")
+  sessionsLog        SessionsLog[]
+  sprintsCreated     Sprint[]         @relation("SprintCreatedBy")
+  todosAssigned      Todo[]           @relation("TodoAssignee")
+  todosCreated       Todo[]           @relation("TodoCreatedBy")
+  activityEvents     ActivityEvent[]  @relation("ActivityActor")
 
   @@map("users")
 }
@@ -96,4 +101,86 @@ model SessionsLog {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("sessions_log")
+}
+
+// ============================================================================
+// Domain Models — Phase 2
+// ============================================================================
+
+model Sprint {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime  @map("end_date") @db.Date
+  status          String    @default("planned")
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  createdBy      User            @relation("SprintCreatedBy", fields: [createdByUserId], references: [id])
+  goals          SprintGoal[]
+  todos          Todo[]
+  activityEvents ActivityEvent[] @relation("ActivityTargetSprint")
+
+  @@index([status, startDate(sort: Desc)])
+  @@map("sprints")
+}
+
+model SprintGoal {
+  id        String   @id @default(uuid()) @db.Uuid
+  sprintId  String   @map("sprint_id") @db.Uuid
+  name      String
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  todos  Todo[]
+
+  @@index([sprintId, position])
+  @@map("sprint_goals")
+}
+
+model Todo {
+  id              String    @id @default(uuid()) @db.Uuid
+  title           String
+  description     String?
+  status          String    @default("todo")
+  priority        String    @default("medium")
+  assigneeUserId  String?   @map("assignee_user_id") @db.Uuid
+  dueDate         DateTime? @map("due_date") @db.Date
+  sprintId        String?   @map("sprint_id") @db.Uuid
+  sprintGoalId    String?   @map("sprint_goal_id") @db.Uuid
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  assignee        User?           @relation("TodoAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  sprint          Sprint?         @relation(fields: [sprintId], references: [id], onDelete: Restrict)
+  sprintGoal      SprintGoal?     @relation(fields: [sprintGoalId], references: [id], onDelete: Restrict)
+  createdBy       User            @relation("TodoCreatedBy", fields: [createdByUserId], references: [id])
+  activityEvents  ActivityEvent[] @relation("ActivityTargetTodo")
+
+  @@index([assigneeUserId, status, dueDate(sort: Asc)])
+  @@index([sprintId, sprintGoalId])
+  @@map("todos")
+}
+
+model ActivityEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorUserId    String   @map("actor_user_id") @db.Uuid
+  kind           String
+  targetTodoId   String?  @map("target_todo_id") @db.Uuid
+  targetSprintId String?  @map("target_sprint_id") @db.Uuid
+  payloadJson    Json?    @map("payload_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  actor       User   @relation("ActivityActor", fields: [actorUserId], references: [id])
+  targetTodo  Todo?  @relation("ActivityTargetTodo", fields: [targetTodoId], references: [id], onDelete: SetNull)
+  targetSprint Sprint? @relation("ActivityTargetSprint", fields: [targetSprintId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([targetTodoId, createdAt(sort: Desc)])
+  @@map("activity_events")
 }
