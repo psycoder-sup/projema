@@ -38,6 +38,8 @@ model User {
   todosCreated       Todo[]           @relation("TodoCreatedBy")
   activityEvents     ActivityEvent[]  @relation("ActivityActor")
   todoDocuments      TodoDocument[]   @relation("TodoDocumentUpdatedBy")
+  comments           Comment[]        @relation("CommentAuthor")
+  rateLimitBuckets   RateLimitBucket[] @relation("RateLimitBucketUser")
 
   @@map("users")
 }
@@ -164,6 +166,7 @@ model Todo {
   activityEvents  ActivityEvent[] @relation("ActivityTargetTodo")
   links           TodoLink[]
   document        TodoDocument?
+  comments        Comment[]
 
   @@index([assigneeUserId, status, dueDate(sort: Asc)])
   @@index([sprintId, sprintGoalId])
@@ -212,4 +215,35 @@ model ActivityEvent {
   @@index([createdAt(sort: Desc)])
   @@index([targetTodoId, createdAt(sort: Desc)])
   @@map("activity_events")
+}
+
+// ============================================================================
+// Domain Models — Phase 4
+// ============================================================================
+
+model Comment {
+  id            String    @id @default(uuid()) @db.Uuid
+  todoId        String    @map("todo_id") @db.Uuid
+  authorUserId  String    @map("author_user_id") @db.Uuid
+  body          String
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  editedAt      DateTime? @map("edited_at") @db.Timestamptz
+
+  todo   Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  author User @relation("CommentAuthor", fields: [authorUserId], references: [id])
+
+  @@index([todoId, createdAt])
+  @@map("comments")
+}
+
+model RateLimitBucket {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  actionKey String   @map("action_key")
+  eventAt   DateTime @default(now()) @map("event_at") @db.Timestamptz
+
+  user User @relation("RateLimitBucketUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, actionKey, eventAt(sort: Desc)])
+  @@map("rate_limit_buckets")
 }

@@ -1,14 +1,17 @@
 import { TodoStatusChip } from './TodoStatusChip';
 import { TodoPriorityChip } from './TodoPriorityChip';
 import { MarkdownDoc } from './MarkdownDoc';
-import type { Todo, User } from '@/types/domain';
+import { CommentList } from '@/components/comments/CommentList';
+import { CommentComposer } from '@/components/comments/CommentComposer';
+import type { Todo, Comment, User } from '@/types/domain';
 
 interface TodoDetailPanelProps {
   todo: Todo;
+  comments?: Comment[];
   actor: User;
 }
 
-export function TodoDetailPanel({ todo, actor }: TodoDetailPanelProps) {
+export function TodoDetailPanel({ todo, comments = [], actor }: TodoDetailPanelProps) {
   return (
     <div className="space-y-6 p-4">
       {/* Header */}
@@ -62,10 +65,15 @@ export function TodoDetailPanel({ todo, actor }: TodoDetailPanelProps) {
         />
       </div>
 
-      {/* Comments placeholder for Phase 4 */}
+      {/* Comments */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-2">Comments</h2>
-        <p className="text-sm text-muted-foreground italic">Comments coming in Phase 4.</p>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">
+          Comments {comments.length > 0 && `(${comments.length})`}
+        </h2>
+        <CommentList comments={comments} actor={actor} />
+        <div className="mt-4">
+          <CommentComposer todoId={todo.id} actor={actor} />
+        </div>
       </div>
     </div>
   );

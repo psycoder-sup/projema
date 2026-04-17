@@ -6,8 +6,9 @@
  */
 import { prisma } from '@/server/db/client';
 import { mapTodoRow, mapTodoLinkRow, mapTodoDocumentRow } from '@/server/db/todo-mappers';
+import { mapCommentRow } from '@/server/db/comment-mappers';
 import { recordActivity } from '@/server/services/activity';
-import type { Todo, TodoLink, TodoDocument, Result, ServerActionError, User } from '@/types/domain';
+import type { Todo, TodoLink, TodoDocument, Comment, Result, ServerActionError, User } from '@/types/domain';
 import {
   createTodoSchema,
   updateTodoSchema,
@@ -559,6 +560,7 @@ type TodoDetailResult = Todo & {
   sprint: { id: string; name: string; status: string } | null;
   goal: { id: string; name: string } | null;
   assignee: { id: string; displayName: string; avatarUrl: string | null } | null;
+  comments: Comment[];
 };
 
 export async function getTodoDetail(
@@ -581,6 +583,7 @@ export async function getTodoDetail(
         sprint: { select: { id: true, name: true, status: true } },
         sprintGoal: { select: { id: true, name: true } },
         assignee: { select: { id: true, displayName: true, avatarUrl: true } },
+        comments: { orderBy: { createdAt: 'asc' } },
       },
     });
 
@@ -607,6 +610,7 @@ export async function getTodoDetail(
               avatarUrl: raw.assignee.avatarUrl,
             }
           : null,
+        comments: raw.comments.map(mapCommentRow),
       },
     };
   } catch {

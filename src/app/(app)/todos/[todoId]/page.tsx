@@ -1,7 +1,6 @@
 /**
  * Todo detail page (full-page view, especially for mobile).
- * Shows title, status/priority, description, links, markdown document.
- * Comments are a Phase 4 placeholder.
+ * Shows title, status/priority, description, links, markdown document, and comments.
  */
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/server/auth';
@@ -41,7 +40,11 @@ export default async function TodoDetailPage({ params }: TodoDetailPageProps) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <TodoDetailPanel todo={result.data} actor={actor} />
+      <TodoDetailPanel
+        todo={result.data}
+        comments={result.data.comments}
+        actor={actor}
+      />
     </div>
   );
 }
