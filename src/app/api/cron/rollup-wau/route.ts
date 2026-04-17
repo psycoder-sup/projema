@@ -1,9 +1,13 @@
 // rollup-wau: rollup weekly active users. Fires every hour.
-import { validateCronSecret, notImplementedResponse } from '@/server/jobs/cron';
+import { NextResponse } from 'next/server';
+import { validateCronSecret } from '@/server/jobs/cron';
+import { rollupWeeklyActive } from '@/server/jobs/rollup-wau';
 
-export async function GET(req: Request) {
+export async function GET(req: Request): Promise<NextResponse> {
   if (!validateCronSecret(req)) {
-    return new Response('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  return notImplementedResponse('rollup-wau');
+
+  const result = await rollupWeeklyActive();
+  return NextResponse.json(result, { status: 200 });
 }

@@ -7,6 +7,13 @@ import { env } from '@/lib/env';
 
 let _posthog: PostHog | null = null;
 
+/**
+ * Minimal interface for PostHog-compatible sinks (used by the test injectable).
+ */
+export type PostHogSink = {
+  capture(args: { distinctId: string; event: string; properties?: Record<string, unknown> }): void;
+};
+
 function getPostHogClient(): PostHog {
   if (!_posthog) {
     _posthog = new PostHog(env.POSTHOG_API_KEY, {
@@ -23,7 +30,6 @@ function getPostHogClient(): PostHog {
 /**
  * Emits a PostHog event from the server side.
  * Called after a DB transaction commits so failed writes never emit success events.
- * Phase 7: wire all event types from SPEC §8.
  */
 export async function emitEvent(
   userId: string,

@@ -9,6 +9,7 @@ import { mapTodoRow, mapTodoLinkRow, mapTodoDocumentRow } from '@/server/db/todo
 import { mapCommentRow } from '@/server/db/comment-mappers';
 import { recordActivity } from '@/server/services/activity';
 import { createAssignedNotification } from '@/server/services/notifications';
+import { track } from '@/server/analytics/events';
 import type { Todo, TodoLink, TodoDocument, Comment, Result, ServerActionError, User } from '@/types/domain';
 import {
   createTodoSchema,
@@ -119,6 +120,31 @@ export async function createTodo(
       return { todo, links: createdLinks };
     });
 
+    // Post-transaction analytics
+    void track({
+      name: 'todo_created',
+      props: {
+        userId: ctx.actor.id,
+        todoId: result.todo.id,
+        hasSprint: result.todo.sprintId !== null,
+        hasGoal: result.todo.sprintGoalId !== null,
+        hasAssignee: result.todo.assigneeUserId !== null,
+        hasDueDate: result.todo.dueDate !== null,
+        priority: result.todo.priority,
+      },
+    });
+
+    if (assigneeUserId && assigneeUserId !== ctx.actor.id) {
+      void track({
+        name: 'todo_assigned',
+        props: {
+          userId: ctx.actor.id,
+          todoId: result.todo.id,
+          assigneeUserId,
+        },
+      });
+    }
+
     return {
       ok: true,
       data: {
@@ -226,8 +252,13 @@ export async function updateTodo(
         }
       }
 
+      // Track what changed for post-transaction analytics
+      let statusChanged: { from: string; to: string } | undefined;
+      let newAssigneeId: string | undefined;
+
       // Activity: emit status change
       if (patch.status !== undefined && patch.status !== existing.status) {
+        statusChanged = { from: existing.status, to: patch.status };
         await recordActivity(tx, {
           actorUserId: ctx.actor.id,
           kind: 'todo_status_changed',
@@ -241,19 +272,20 @@ export async function updateTodo(
         Object.prototype.hasOwnProperty.call(input, 'assigneeUserId') &&
         input['assigneeUserId'] !== existing.assigneeUserId
       ) {
-        const newAssigneeId = input['assigneeUserId'] as string | null;
-        if (newAssigneeId) {
+        const assigneeId = input['assigneeUserId'] as string | null;
+        if (assigneeId) {
+          newAssigneeId = assigneeId;
           await recordActivity(tx, {
             actorUserId: ctx.actor.id,
             kind: 'todo_assigned',
             targetTodoId: id,
-            payload: { assigneeUserId: newAssigneeId },
+            payload: { assigneeUserId: assigneeId },
           });
 
           // FR-25: notify new assignee (only when assignee actually changed and is not the actor)
-          if (newAssigneeId !== ctx.actor.id) {
+          if (assigneeId !== ctx.actor.id) {
             await createAssignedNotification(tx, {
-              userId: newAssigneeId,
+              userId: assigneeId,
               targetTodoId: id,
               triggeredByUserId: ctx.actor.id,
             });
@@ -261,11 +293,36 @@ export async function updateTodo(
         }
       }
 
-      return { todo: updated, stale };
+      return { todo: updated, stale, statusChanged, newAssigneeId };
     });
 
     if (!result) {
       return { ok: false, error: { code: 'not_found', message: 'Todo not found.' } };
+    }
+
+    // Post-transaction analytics: status change
+    if (result.statusChanged) {
+      void track({
+        name: 'todo_status_changed',
+        props: {
+          userId: ctx.actor.id,
+          todoId: id,
+          from: result.statusChanged.from,
+          to: result.statusChanged.to,
+        },
+      });
+    }
+
+    // Post-transaction analytics: assignee change
+    if (result.newAssigneeId) {
+      void track({
+        name: 'todo_assigned',
+        props: {
+          userId: ctx.actor.id,
+          todoId: id,
+          assigneeUserId: result.newAssigneeId,
+        },
+      });
     }
 
     const data: { todo: Todo; stale?: boolean } = {

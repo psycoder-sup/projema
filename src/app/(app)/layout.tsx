@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { BellMenu } from '@/components/layout/BellMenu';
+import { PostHogPageView } from '@/components/layout/PostHogPageView';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -70,6 +71,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Link href="/admin/members">Members</Link>
               </Button>
             )}
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin/wau">WAU</Link>
+              </Button>
+            )}
           </nav>
 
           {/* Right side: bell + user menu */}
@@ -118,6 +124,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
+      <PostHogPageView />
       <main className="flex-1">{children}</main>
     </div>
   );

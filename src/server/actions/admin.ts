@@ -7,6 +7,12 @@
  */
 import { prisma } from '@/server/db/client';
 import type { AllowlistEntry, Result, User } from '@/types/domain';
+
+export type WauData = {
+  totalMembers: number;
+  wauCount: number;
+  wauWindow: { start: string; end: string };
+};
 import {
   addAllowlistEmailSchema,
   removeAllowlistEmailSchema,
@@ -157,6 +163,59 @@ export async function deactivateUser(
   });
 
   return { ok: true, data: { deactivated: true } };
+}
+
+// ============================================================================
+// adminGetWau — FR-28
+// ============================================================================
+
+/**
+ * Returns Weekly Active Users stats for the admin dashboard.
+ * Admin-only. Non-admin returns `forbidden`.
+ *
+ * - totalMembers: count of users WHERE is_active = true.
+ * - wauCount: count(DISTINCT user_id) from sessions_log WHERE created_at >= now() - 7 days.
+ * - wauWindow: { start: (now-7d).toISO(), end: now.toISO() }.
+ */
+export async function adminGetWau(
+  _input: Record<string, unknown>,
+  ctx: ActionCtx,
+): Promise<Result<WauData>> {
+  if (!ctx.actor.isActive) {
+    return { ok: false, error: { code: 'unauthorized', message: 'Account is inactive.' } };
+  }
+  if (ctx.actor.role !== 'admin') {
+    return { ok: false, error: { code: 'forbidden', message: 'Admin access required.' } };
+  }
+
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalMembers, wauResult] = await Promise.all([
+      prisma.user.count({ where: { isActive: true } }),
+      // DISTINCT user_id count via groupBy+count or raw query
+      prisma.sessionsLog.findMany({
+        where: { createdAt: { gte: sevenDaysAgo } },
+        select: { userId: true },
+        distinct: ['userId'],
+      }),
+    ]);
+
+    return {
+      ok: true,
+      data: {
+        totalMembers,
+        wauCount: wauResult.length,
+        wauWindow: {
+          start: sevenDaysAgo.toISOString(),
+          end: now.toISOString(),
+        },
+      },
+    };
+  } catch {
+    return { ok: false, error: { code: 'internal_error', message: 'Failed to fetch WAU data.' } };
+  }
 }
 
 // ============================================================================

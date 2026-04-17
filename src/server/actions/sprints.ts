@@ -7,6 +7,7 @@
 import { prisma } from '@/server/db/client';
 import { mapSprintRow, mapSprintGoalRow } from '@/server/db/sprint-mappers';
 import { recordActivity } from '@/server/services/activity';
+import { track } from '@/server/analytics/events';
 import type { Sprint, SprintGoal, Todo, TodoStatus, TodoPriority, Result, ServerActionError, User } from '@/types/domain';
 import { toIsoDate } from '@/lib/utils/date';
 import {
@@ -108,11 +109,28 @@ export async function createSprint(
       return { sprint, goals };
     });
 
+    const mappedSprint = mapSprintRow(result.sprint, result.goals);
+    const mappedGoals = result.goals.map(mapSprintGoalRow);
+
+    // Emit post-transaction (analytics errors must never fail the action)
+    const startMs = result.sprint.startDate.getTime();
+    const endMs = result.sprint.endDate.getTime();
+    const durationDays = Math.round((endMs - startMs) / (1000 * 60 * 60 * 24));
+    void track({
+      name: 'sprint_created',
+      props: {
+        userId: ctx.actor.id,
+        sprintId: result.sprint.id,
+        goalCount: result.goals.length,
+        durationDays,
+      },
+    });
+
     return {
       ok: true,
       data: {
-        sprint: mapSprintRow(result.sprint, result.goals),
-        goals: result.goals.map(mapSprintGoalRow),
+        sprint: mappedSprint,
+        goals: mappedGoals,
       },
     };
   } catch (err) {
@@ -403,6 +421,24 @@ export async function activateSprint(
       return { ok: false, error: result.error };
     }
 
+    // Post-transaction analytics — never fail the action
+    if (result.completedSprintId) {
+      void track({
+        name: 'sprint_completed',
+        props: {
+          userId: ctx.actor.id,
+          sprintId: result.completedSprintId,
+          todoTotal: 0,
+          todoDone: 0,
+          goalCount: 0,
+        },
+      });
+    }
+    void track({
+      name: 'sprint_activated',
+      props: { userId: ctx.actor.id, sprintId: id },
+    });
+
     const data: { sprint: Sprint; completedSprintId?: string } = {
       sprint: mapSprintRow(result.sprint, result.goals),
     };
@@ -499,6 +535,18 @@ export async function completeSprint(
     if (!result) {
       return { ok: false, error: { code: 'not_found', message: 'Sprint not found.' } };
     }
+
+    // Post-transaction analytics
+    void track({
+      name: 'sprint_completed',
+      props: {
+        userId: ctx.actor.id,
+        sprintId: id,
+        todoTotal: result.totals.todoTotal,
+        todoDone: result.totals.todoDone,
+        goalCount: result.totals.goalCount,
+      },
+    });
 
     return {
       ok: true,

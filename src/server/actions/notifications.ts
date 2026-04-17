@@ -5,6 +5,7 @@
  */
 import { prisma } from '@/server/db/client';
 import { mapNotificationRow } from '@/server/db/notification-mappers';
+import { track } from '@/server/analytics/events';
 import type { Notification, Result, ServerActionError, User } from '@/types/domain';
 import {
   listNotificationsSchema,
@@ -98,6 +99,16 @@ export async function markNotificationRead(
         data: { readAt: new Date() },
       });
     }
+
+    // Post-transaction analytics
+    void track({
+      name: 'notification_opened',
+      props: {
+        userId: ctx.actor.id,
+        notificationId: id,
+        kind: existing.kind,
+      },
+    });
 
     return { ok: true, data: { ok: true } };
   } catch {

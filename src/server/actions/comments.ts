@@ -9,6 +9,7 @@ import { mapCommentRow } from '@/server/db/comment-mappers';
 import { recordActivity } from '@/server/services/activity';
 import { checkRateLimit } from '@/server/services/rate-limit';
 import { createCommentOnAssignedNotification } from '@/server/services/notifications';
+import { track, commentLengthBucket } from '@/server/analytics/events';
 import type { Comment, Result, ServerActionError, User } from '@/types/domain';
 import {
   postCommentSchema,
@@ -44,7 +45,7 @@ function validationError(message: string, field?: string): Result<never, ServerA
  * - Emits `comment_posted` activity event.
  * - If todo has an assignee and assignee != author, inserts a
  *   notifications(kind='comment_on_assigned') row for the assignee (FR-25).
- * - TODO (Phase 7): Emit PostHog `comment_posted` event post-transaction.
+ * - Emits PostHog `comment_posted` event post-transaction.
  */
 export async function postComment(
   input: Record<string, unknown>,
@@ -121,6 +122,16 @@ export async function postComment(
       return { ok: false, error: { code: 'internal_error', message: 'Failed to post comment.' } };
     }
 
+    // Post-transaction analytics
+    void track({
+      name: 'comment_posted',
+      props: {
+        userId: ctx.actor.id,
+        todoId,
+        commentLengthBucket: commentLengthBucket(body),
+      },
+    });
+
     return { ok: true, data: { comment: mapCommentRow(result.comment) } };
   } catch {
     return { ok: false, error: { code: 'internal_error', message: 'Failed to post comment.' } };
@@ -134,8 +145,6 @@ export async function postComment(
 /**
  * Edit a comment body. Author-only.
  * Sets edited_at = now().
- *
- * TODO (Phase 7): Emit PostHog event post-transaction.
  */
 export async function editComment(
   input: Record<string, unknown>,
@@ -181,8 +190,6 @@ export async function editComment(
 
 /**
  * Delete a comment. Author-only.
- *
- * TODO (Phase 7): Emit PostHog event post-transaction.
  */
 export async function deleteComment(
   input: Record<string, unknown>,

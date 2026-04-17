@@ -6,6 +6,7 @@ import GitHubProvider from 'next-auth/providers/github';
 import { prisma } from '../db/client';
 import { env } from '@/lib/env';
 import { handleSignInCallback, recordSignIn } from './allowlist';
+import { track } from '@/server/analytics/events';
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
@@ -71,8 +72,12 @@ export const authConfig: NextAuthConfig = {
     async signIn({ user, account }) {
       if (!user.id) return;
       const provider = (account?.provider ?? 'google') as 'google' | 'github';
-      // TODO Phase 7: emit PostHog 'session_started' event here
       await recordSignIn({ userId: user.id, provider });
+      // Emit post-signIn (after sessions_log write, non-fatal)
+      void track({
+        name: 'session_started',
+        props: { userId: user.id, provider },
+      });
     },
   },
 };
