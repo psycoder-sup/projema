@@ -1,7 +1,10 @@
 /**
  * TeamActivityCard — renders the last 15 activity events for the dashboard.
  * Each event is rendered as a human-readable line based on `kind`.
+ * Wraps in shadcn Card for consistent layout in the 2x2 grid.
+ * Empty state: "No team activity yet."
  */
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ActivityEvent } from '@/types/domain';
 
 interface TeamActivityCardProps {
@@ -71,19 +74,24 @@ function ActivityEventRow({ event }: { event: ActivityEvent }) {
 }
 
 export function TeamActivityCard({ events }: TeamActivityCardProps) {
-  if (events.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground italic">
-        Activity will appear here as your team uses the app.
-      </div>
-    );
-  }
-
   return (
-    <div className="divide-y divide-border">
-      {events.map((event) => (
-        <ActivityEventRow key={event.id} event={event} />
-      ))}
-    </div>
+    <Card className="h-full flex flex-col" aria-label="Team activity">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Team Activity</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1">
+        {events.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">
+            No team activity yet.
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {events.map((event) => (
+              <ActivityEventRow key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

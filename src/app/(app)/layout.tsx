@@ -1,10 +1,16 @@
 /**
  * Authenticated app shell layout — FR-04.
  * Redirects to /sign-in if no session.
- * Renders Topbar with user menu + sign-out on every authenticated route.
+ * Renders Topbar with nav links, bell stub, user menu + sign-out on every authenticated route.
+ *
+ * Bell icon: Phase 5 stub — zero badge, inert popover with "You're all caught up."
+ * Phase 6 will wire it to real notification data.
  */
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth, signOut } from '@/server/auth';
+import { prisma } from '@/server/db/client';
+import { Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,48 +32,112 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = session.user;
   const initials = (user.name ?? user.email ?? 'U').charAt(0).toUpperCase();
 
+  // Check if the user is admin (for the Members nav link)
+  let isAdmin = false;
+  if (user.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    });
+    isAdmin = dbUser?.role === 'admin';
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <span className="font-semibold text-sm">Sprint Todo Management</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-                <Avatar
-                  src={user.image ?? null}
-                  alt={user.name ?? user.email ?? 'User'}
-                  fallback={initials}
-                  size="sm"
-                />
+        <div className="flex h-14 items-center gap-4 px-4">
+          {/* App name / logo */}
+          <Link
+            href="/dashboard"
+            className="font-semibold text-sm shrink-0 hover:opacity-80 transition-opacity"
+          >
+            Sprint Todo
+          </Link>
+
+          {/* Navigation links */}
+          <nav className="flex items-center gap-1 flex-1 overflow-x-auto" aria-label="Main navigation">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/sprints">Sprints</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/todos">Todos</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/todos/mine">My Todos</Link>
+            </Button>
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin/members">Members</Link>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  {user.name && (
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
-                  )}
-                  {user.email && (
-                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                  )}
+            )}
+          </nav>
+
+          {/* Right side: bell + user menu */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Bell icon stub — Phase 5: inert, no data fetch */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative h-8 w-8 p-0"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-4 w-4" />
+                  {/* Zero badge — Phase 6 will make this dynamic */}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                  You&apos;re all caught up.
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <form
-                action={async () => {
-                  'use server';
-                  await signOut({ redirectTo: '/sign-in' });
-                }}
-              >
-                <DropdownMenuItem asChild>
-                  <button type="submit" className="w-full cursor-pointer">
-                    Sign out
-                  </button>
-                </DropdownMenuItem>
-              </form>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* User menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                  <Avatar
+                    src={user.image ?? null}
+                    alt={user.name ?? user.email ?? 'User'}
+                    fallback={initials}
+                    size="sm"
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    {user.name && (
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                    )}
+                    {user.email && (
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <form
+                  action={async () => {
+                    'use server';
+                    await signOut({ redirectTo: '/sign-in' });
+                  }}
+                >
+                  <DropdownMenuItem asChild>
+                    <button type="submit" className="w-full cursor-pointer">
+                      Sign out
+                    </button>
+                  </DropdownMenuItem>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>
