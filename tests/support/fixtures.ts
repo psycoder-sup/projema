@@ -6,7 +6,8 @@
  * then access the db via getDb() or the exported fixture functions.
  */
 import { PrismaClient } from '@prisma/client';
-import type { User } from '@/types/domain';
+import type { User, Sprint, SprintGoal, Todo } from '@/types/domain';
+import { toIsoDate } from '@/lib/utils/date';
 
 // Lazy client — created on first access so that beforeAll can set DATABASE_URL first.
 let _db: PrismaClient | undefined;
@@ -34,14 +35,21 @@ export function resetDbClient(): void {
  */
 export async function resetDb(): Promise<void> {
   const client = getDb();
-  await client.$transaction([
-    client.sessionsLog.deleteMany(),
-    client.allowlistEntry.deleteMany(),
-    client.session.deleteMany(),
-    client.account.deleteMany(),
-    client.verificationToken.deleteMany(),
-    client.user.deleteMany(),
-  ]);
+  // Delete in dependency order: children before parents
+  await client.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      activity_events,
+      sessions_log,
+      allowlist_entries,
+      sessions,
+      accounts,
+      verification_tokens,
+      todos,
+      sprint_goals,
+      sprints,
+      users
+    CASCADE
+  `);
 }
 
 let adminCounter = 0;
@@ -124,6 +132,192 @@ export async function deactivateUser(user: User): Promise<void> {
     where: { id: user.id },
     data: { isActive: false },
   });
+}
+
+// ============================================================================
+// Sprint fixtures
+// ============================================================================
+
+function todayISO(): string {
+  return new Date().toISOString().substring(0, 10);
+}
+
+function addDays(n: number, from?: string): string {
+  const base = from ? new Date(from) : new Date();
+  base.setDate(base.getDate() + n);
+  return base.toISOString().substring(0, 10);
+}
+
+/**
+ * Create a Sprint row (with optional goals).
+ * Returns the domain Sprint with goals attached.
+ */
+export async function seedSprint(
+  overrides: {
+    name?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: 'planned' | 'active' | 'completed';
+    withGoals?: string[];
+    createdByUserId?: string;
+    completedAt?: Date | null;
+  } = {}
+): Promise<Sprint & { goals: SprintGoal[] }> {
+  const db = getDb();
+
+  // Ensure at least one user exists to use as creator
+  let createdByUserId = overrides.createdByUserId;
+  if (!createdByUserId) {
+    const anyUser = await db.user.findFirst();
+    if (anyUser) {
+      createdByUserId = anyUser.id;
+    } else {
+      const u = await createMember(`sprint-creator-${Date.now()}@fixture.test`);
+      createdByUserId = u.id;
+    }
+  }
+
+  const startDate = overrides.startDate ?? todayISO();
+  const endDate = overrides.endDate ?? addDays(14, startDate);
+  const status = overrides.status ?? 'planned';
+  const name = overrides.name ?? `Test Sprint ${Date.now()}`;
+  const goalNames = overrides.withGoals ?? [];
+
+  const completedAt =
+    overrides.completedAt !== undefined
+      ? overrides.completedAt
+      : status === 'completed'
+        ? new Date()
+        : null;
+
+  const rawSprint = await db.sprint.create({
+    data: {
+      name,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      status,
+      createdByUserId,
+      completedAt,
+    },
+  });
+
+  const goals: SprintGoal[] = [];
+  for (let i = 0; i < goalNames.length; i++) {
+    const rawGoal = await db.sprintGoal.create({
+      data: {
+        sprintId: rawSprint.id,
+        name: goalNames[i]!,
+        position: i,
+      },
+    });
+    goals.push({
+      id: rawGoal.id,
+      sprintId: rawGoal.sprintId,
+      name: rawGoal.name,
+      position: rawGoal.position,
+      createdAt: rawGoal.createdAt,
+    });
+  }
+
+  return {
+    id: rawSprint.id,
+    name: rawSprint.name,
+    startDate: toIsoDate(rawSprint.startDate) ?? startDate,
+    endDate: toIsoDate(rawSprint.endDate) ?? endDate,
+    status: rawSprint.status as 'planned' | 'active' | 'completed',
+    createdByUserId: rawSprint.createdByUserId,
+    completedAt: rawSprint.completedAt,
+    createdAt: rawSprint.createdAt,
+    updatedAt: rawSprint.updatedAt,
+    goals,
+  };
+}
+
+/**
+ * Create a minimal Todo row.
+ */
+export async function seedTodo(
+  overrides: {
+    title?: string;
+    status?: 'todo' | 'in_progress' | 'done';
+    priority?: 'low' | 'medium' | 'high';
+    sprintId?: string | null;
+    sprintGoalId?: string | null;
+    assigneeUserId?: string | null;
+    dueDate?: string | null;
+    createdByUserId?: string;
+  } = {}
+): Promise<Todo> {
+  const db = getDb();
+
+  let createdByUserId = overrides.createdByUserId;
+  if (!createdByUserId) {
+    const anyUser = await db.user.findFirst();
+    if (anyUser) {
+      createdByUserId = anyUser.id;
+    } else {
+      const u = await createMember(`todo-creator-${Date.now()}@fixture.test`);
+      createdByUserId = u.id;
+    }
+  }
+
+  const rawTodo = await db.todo.create({
+    data: {
+      title: overrides.title ?? `Test Todo ${Date.now()}`,
+      status: overrides.status ?? 'todo',
+      priority: overrides.priority ?? 'medium',
+      sprintId: overrides.sprintId ?? null,
+      sprintGoalId: overrides.sprintGoalId ?? null,
+      assigneeUserId: overrides.assigneeUserId ?? null,
+      dueDate: overrides.dueDate ? new Date(overrides.dueDate) : null,
+      createdByUserId,
+    },
+  });
+
+  return {
+    id: rawTodo.id,
+    title: rawTodo.title,
+    description: rawTodo.description,
+    status: rawTodo.status as 'todo' | 'in_progress' | 'done',
+    priority: rawTodo.priority as 'low' | 'medium' | 'high',
+    assigneeUserId: rawTodo.assigneeUserId,
+    dueDate: toIsoDate(rawTodo.dueDate),
+    sprintId: rawTodo.sprintId,
+    sprintGoalId: rawTodo.sprintGoalId,
+    createdByUserId: rawTodo.createdByUserId,
+    completedAt: rawTodo.completedAt,
+    createdAt: rawTodo.createdAt,
+    updatedAt: rawTodo.updatedAt,
+    links: [],
+    document: null,
+  };
+}
+
+/**
+ * Create a goal with N todos attached to it, in a planned sprint.
+ * Returns the goal with sprintId and sprint status info.
+ */
+export async function seedGoalWithTodos({
+  todoCount,
+  sprintStatus = 'planned',
+  goalName = 'G',
+}: {
+  todoCount: number;
+  sprintStatus?: 'planned' | 'active' | 'completed';
+  goalName?: string;
+}): Promise<SprintGoal & { sprintId: string }> {
+  const sprint = await seedSprint({ status: sprintStatus, withGoals: [goalName] });
+  const goal = sprint.goals[0];
+  if (!goal) throw new Error('Goal not created in seedGoalWithTodos');
+
+  for (let i = 0; i < todoCount; i++) {
+    await seedTodo({
+      sprintId: sprint.id,
+      sprintGoalId: goal.id,
+    });
+  }
+
+  return { ...goal, sprintId: sprint.id };
 }
 
 /**
