@@ -5,15 +5,24 @@
 import { describe, test, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { execSync } from 'node:child_process';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { handleSignInCallback, recordSignIn } from '@/server/auth/allowlist';
-import { createMember, createAdmin, seedAllowlist, resetDb, db } from '../support/fixtures';
-import { addAllowlistEmail, deactivateUser } from '@/server/actions/admin';
+
+// Import fixture helpers — lazy client, reset after URL is set
+import { createMember, createAdmin, seedAllowlist, resetDb, resetDbClient, getDb } from '../support/fixtures';
+import { resetPrismaClient } from '@/server/db/client';
 
 let container: StartedPostgreSqlContainer;
 
 beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:15').start();
   const connectionUri = container.getConnectionUri();
+
+  // Set env vars BEFORE any Prisma clients are constructed
+  process.env['DATABASE_URL'] = connectionUri;
+  process.env['DIRECT_URL'] = connectionUri;
+
+  // Reset ALL lazy prisma clients so next access uses the new URL
+  resetDbClient();
+  resetPrismaClient();
 
   execSync('pnpm prisma migrate deploy', {
     env: {
@@ -24,16 +33,10 @@ beforeAll(async () => {
     stdio: 'pipe',
     cwd: process.cwd(),
   });
-
-  process.env['DATABASE_URL'] = connectionUri;
-  process.env['DIRECT_URL'] = connectionUri;
-
-  // Re-connect the fixture db client to the new container
-  await db.$disconnect();
-  // The db is re-connected lazily on next query
 }, 120_000);
 
 afterAll(async () => {
+  const db = getDb();
   await db.$disconnect();
   await container?.stop();
 });
@@ -60,6 +63,7 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
   });
 
   test('first signup on empty DB is admitted as admin', async () => {
+    const { handleSignInCallback } = await import('@/server/auth/allowlist');
     const result = await handleSignInCallback({
       email: 'founder@example.com',
       displayName: 'Founder',
@@ -67,11 +71,12 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
       provider: 'google',
     });
     expect(result.ok).toBe(true);
-    const user = await db.user.findUnique({ where: { email: 'founder@example.com' } });
+    const user = await getDb().user.findUnique({ where: { email: 'founder@example.com' } });
     expect(user?.role).toBe('admin');
   });
 
   test('second new-email signup without allowlist is rejected', async () => {
+    const { handleSignInCallback } = await import('@/server/auth/allowlist');
     await createAdmin('founder@example.com');
     const result = await handleSignInCallback({
       email: 'stranger@example.com',
@@ -84,6 +89,7 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
   });
 
   test('allowlisted email signup admits as member', async () => {
+    const { handleSignInCallback } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     await seedAllowlist('new@example.com', admin.id);
     const result = await handleSignInCallback({
@@ -93,11 +99,12 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
       provider: 'google',
     });
     expect(result.ok).toBe(true);
-    const user = await db.user.findUnique({ where: { email: 'new@example.com' } });
+    const user = await getDb().user.findUnique({ where: { email: 'new@example.com' } });
     expect(user?.role).toBe('member');
   });
 
   test('email lookup is case-insensitive (uppercase email still matches allowlist)', async () => {
+    const { handleSignInCallback } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     await seedAllowlist('CaseSensitive@Example.COM', admin.id);
     const result = await handleSignInCallback({
@@ -110,6 +117,7 @@ describe('FR-02: first signup becomes admin; others require allowlist', () => {
   });
 
   test('existing user can sign in again (update displayName/avatar, keep role)', async () => {
+    const { handleSignInCallback } = await import('@/server/auth/allowlist');
     const admin = await createAdmin('existing@example.com');
     await seedAllowlist('existing@example.com', admin.id);
     const result = await handleSignInCallback({
@@ -132,6 +140,7 @@ describe('FR-03: only admins can manage the allowlist', () => {
   });
 
   test('admin can add an allowlist email', async () => {
+    const { addAllowlistEmail } = await import('@/server/actions/admin');
     const admin = await createAdmin('admin@example.com');
     const result = await addAllowlistEmail({ email: 'new@example.com' }, { actor: admin });
     expect(result.ok).toBe(true);
@@ -141,6 +150,7 @@ describe('FR-03: only admins can manage the allowlist', () => {
   });
 
   test('member cannot add an allowlist email', async () => {
+    const { addAllowlistEmail } = await import('@/server/actions/admin');
     const member = await createMember('m@example.com');
     const result = await addAllowlistEmail({ email: 'x@example.com' }, { actor: member });
     expect(result.ok).toBe(false);
@@ -148,6 +158,7 @@ describe('FR-03: only admins can manage the allowlist', () => {
   });
 
   test('admin cannot deactivate the last admin', async () => {
+    const { deactivateUser } = await import('@/server/actions/admin');
     const admin = await createAdmin('solo-admin@example.com');
     const result = await deactivateUser({ userId: admin.id }, { actor: admin });
     expect(result.ok).toBe(false);
@@ -155,6 +166,7 @@ describe('FR-03: only admins can manage the allowlist', () => {
   });
 
   test('duplicate allowlist email returns conflict', async () => {
+    const { addAllowlistEmail } = await import('@/server/actions/admin');
     const admin = await createAdmin();
     await addAllowlistEmail({ email: 'dup@example.com' }, { actor: admin });
     const result = await addAllowlistEmail({ email: 'dup@example.com' }, { actor: admin });
@@ -163,6 +175,7 @@ describe('FR-03: only admins can manage the allowlist', () => {
   });
 
   test('admin can deactivate a member', async () => {
+    const { deactivateUser } = await import('@/server/actions/admin');
     const admin = await createAdmin();
     const member = await createMember();
     const result = await deactivateUser({ userId: member.id }, { actor: admin });
@@ -180,30 +193,33 @@ describe('FR-28: sessions_log written on sign-in', () => {
   });
 
   test('recordSignIn writes a sessions_log row', async () => {
+    const { recordSignIn } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     await recordSignIn({ userId: admin.id, provider: 'google' });
 
-    const logs = await db.sessionsLog.findMany({ where: { userId: admin.id } });
+    const logs = await getDb().sessionsLog.findMany({ where: { userId: admin.id } });
     expect(logs.length).toBe(1);
     expect(logs[0]?.provider).toBe('google');
   });
 
   test('recordSignIn updates users.lastSeenAt', async () => {
+    const { recordSignIn } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     const before = new Date();
     await recordSignIn({ userId: admin.id, provider: 'github' });
 
-    const user = await db.user.findUnique({ where: { id: admin.id } });
+    const user = await getDb().user.findUnique({ where: { id: admin.id } });
     expect(user?.lastSeenAt).not.toBeNull();
-    expect(user!.lastSeenAt!.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(user?.lastSeenAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
   });
 
   test('multiple recordSignIn calls create multiple log rows', async () => {
+    const { recordSignIn } = await import('@/server/auth/allowlist');
     const admin = await createAdmin();
     await recordSignIn({ userId: admin.id, provider: 'google' });
     await recordSignIn({ userId: admin.id, provider: 'github' });
 
-    const logs = await db.sessionsLog.findMany({ where: { userId: admin.id } });
+    const logs = await getDb().sessionsLog.findMany({ where: { userId: admin.id } });
     expect(logs.length).toBe(2);
   });
 });

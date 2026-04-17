@@ -1,26 +1,46 @@
 /**
  * Test fixtures for integration and unit tests.
  * Uses the Prisma client configured via environment variables.
+ *
+ * IMPORTANT: Call resetDbClient() after setting DATABASE_URL in beforeAll,
+ * then access the db via getDb() or the exported fixture functions.
  */
 import { PrismaClient } from '@prisma/client';
 import type { User } from '@/types/domain';
 
-// Use the module-level client (env vars set by test setup)
-const db = new PrismaClient();
+// Lazy client — created on first access so that beforeAll can set DATABASE_URL first.
+let _db: PrismaClient | undefined;
 
-export { db };
+export function getDb(): PrismaClient {
+  if (!_db) {
+    _db = new PrismaClient();
+  }
+  return _db;
+}
+
+/**
+ * Reset the lazy client. Call this after DATABASE_URL changes in beforeAll
+ * so the next getDb() call creates a fresh client with the new URL.
+ */
+export function resetDbClient(): void {
+  if (_db) {
+    void _db.$disconnect();
+    _db = undefined;
+  }
+}
 
 /**
  * Truncate all tables in dependency order so each test starts fresh.
  */
 export async function resetDb(): Promise<void> {
-  await db.$transaction([
-    db.sessionsLog.deleteMany(),
-    db.allowlistEntry.deleteMany(),
-    db.session.deleteMany(),
-    db.account.deleteMany(),
-    db.verificationToken.deleteMany(),
-    db.user.deleteMany(),
+  const client = getDb();
+  await client.$transaction([
+    client.sessionsLog.deleteMany(),
+    client.allowlistEntry.deleteMany(),
+    client.session.deleteMany(),
+    client.account.deleteMany(),
+    client.verificationToken.deleteMany(),
+    client.user.deleteMany(),
   ]);
 }
 
@@ -33,7 +53,7 @@ let memberCounter = 0;
 export async function createAdmin(email?: string): Promise<User> {
   adminCounter++;
   const resolvedEmail = email ?? `admin-${adminCounter}@example.com`;
-  const raw = await db.user.create({
+  const raw = await getDb().user.create({
     data: {
       email: resolvedEmail,
       displayName: `Admin ${adminCounter}`,
@@ -42,17 +62,7 @@ export async function createAdmin(email?: string): Promise<User> {
       isActive: true,
     },
   });
-  return {
-    id: raw.id,
-    email: raw.email!,
-    displayName: raw.displayName,
-    avatarUrl: raw.avatarUrl,
-    role: raw.role as 'admin' | 'member',
-    isActive: raw.isActive,
-    lastSeenAt: raw.lastSeenAt,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt,
-  };
+  return mapUser(raw);
 }
 
 /**
@@ -61,7 +71,7 @@ export async function createAdmin(email?: string): Promise<User> {
 export async function createMember(email?: string): Promise<User> {
   memberCounter++;
   const resolvedEmail = email ?? `member-${memberCounter}@example.com`;
-  const raw = await db.user.create({
+  const raw = await getDb().user.create({
     data: {
       email: resolvedEmail,
       displayName: `Member ${memberCounter}`,
@@ -70,24 +80,14 @@ export async function createMember(email?: string): Promise<User> {
       isActive: true,
     },
   });
-  return {
-    id: raw.id,
-    email: raw.email!,
-    displayName: raw.displayName,
-    avatarUrl: raw.avatarUrl,
-    role: raw.role as 'admin' | 'member',
-    isActive: raw.isActive,
-    lastSeenAt: raw.lastSeenAt,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt,
-  };
+  return mapUser(raw);
 }
 
 /**
  * Insert an allowlist_entries row.
  */
 export async function seedAllowlist(email: string, addedByUserId: string): Promise<void> {
-  await db.allowlistEntry.create({
+  await getDb().allowlistEntry.create({
     data: {
       email: email.toLowerCase(),
       addedByUserId,
@@ -107,7 +107,7 @@ export async function seedSessionLog({
   provider: 'google' | 'github';
   createdAt?: Date;
 }): Promise<void> {
-  await db.sessionsLog.create({
+  await getDb().sessionsLog.create({
     data: {
       userId,
       provider,
@@ -120,7 +120,7 @@ export async function seedSessionLog({
  * Deactivate a user by setting isActive=false.
  */
 export async function deactivateUser(user: User): Promise<void> {
-  await db.user.update({
+  await getDb().user.update({
     where: { id: user.id },
     data: { isActive: false },
   });
@@ -151,4 +151,34 @@ export function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString();
+}
+
+// ============================================================================
+// Internal helpers
+// ============================================================================
+
+type PrismaRawUser = {
+  id: string;
+  email: string | null;
+  displayName: string;
+  avatarUrl: string | null;
+  role: string;
+  isActive: boolean;
+  lastSeenAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function mapUser(raw: PrismaRawUser): User {
+  return {
+    id: raw.id,
+    email: raw.email ?? '',
+    displayName: raw.displayName,
+    avatarUrl: raw.avatarUrl,
+    role: raw.role as 'admin' | 'member',
+    isActive: raw.isActive,
+    lastSeenAt: raw.lastSeenAt,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
 }

@@ -1,5 +1,4 @@
 // Prisma schema for Sprint Todo Management
-// Full domain models land in Phase 1+. Auth.js adapter models only here.
 // NOTE: Do NOT use @updatedAt on any model — updated_at is maintained by
 // a Postgres BEFORE UPDATE trigger (trg_set_updated_at_<table>). This is
 // enforced by a lint check in CI.
@@ -15,30 +14,34 @@ datasource db {
 }
 
 // ============================================================================
-// Auth.js v5 Adapter Models
-// The Prisma adapter for Auth.js requires these four models.
-// Column names are in camelCase here; Auth.js adapter maps them to snake_case
-// in the DB via the `map` attribute.
+// Domain Models — Phase 1
 // ============================================================================
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  id          String    @id @default(cuid())
+  email       String    @unique
+  displayName String    @map("display_name")
+  avatarUrl   String?   @map("avatar_url")
+  role        String    @default("member")
+  isActive    Boolean   @default(true) @map("is_active")
+  lastSeenAt  DateTime? @map("last_seen_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
+
+  accounts        Account[]
+  sessions        Session[]
+  allowlistAdded  AllowlistEntry[] @relation("AllowlistAddedBy")
+  sessionsLog     SessionsLog[]
 
   @@map("users")
 }
 
 model Account {
   id                String  @id @default(cuid())
-  userId            String
+  userId            String  @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String  @map("provider_account_id")
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -55,8 +58,8 @@ model Account {
 
 model Session {
   id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -70,4 +73,27 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model AllowlistEntry {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  addedByUserId String   @map("added_by_user_id")
+  addedAt       DateTime @default(now()) @map("added_at")
+
+  addedBy User @relation("AllowlistAddedBy", fields: [addedByUserId], references: [id])
+
+  @@map("allowlist_entries")
+}
+
+model SessionsLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  provider  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("sessions_log")
 }

@@ -1,10 +1,11 @@
-// Auth.js v5 config. Phase 1 will enforce allowlist via signIn callback and emit sign-in events.
+// Auth.js v5 config. Phase 1: allowlist enforcement via signIn callback + sessions_log events.
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import type { NextAuthConfig } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { prisma } from '../db/client';
 import { env } from '@/lib/env';
+import { handleSignInCallback, recordSignIn } from './allowlist';
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
@@ -28,19 +29,50 @@ export const authConfig: NextAuthConfig = {
     error: '/sign-in',
   },
   callbacks: {
-    async signIn() {
+    async signIn({ user, account }) {
+      // Extract email and profile details from Auth.js user object
+      const email = user.email ?? '';
+      const displayName = user.name ?? email;
+      const avatarUrl = user.image ?? null;
+      const provider = (account?.provider ?? 'google') as 'google' | 'github';
+
+      if (!email) return '/sign-in?error=no_email';
+
+      const result = await handleSignInCallback({
+        email,
+        displayName,
+        avatarUrl,
+        provider,
+      });
+
+      if (!result.ok) {
+        if (result.error.code === 'not_allowlisted') {
+          return '/sign-in?error=not_allowlisted';
+        }
+        return '/sign-in?error=unknown';
+      }
+
       return true;
     },
     async session({ session, user }) {
       if (session.user && user) {
         session.user.id = user.id;
+        // Attach role and isActive from DB user
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+        if (dbUser) {
+          (session.user as typeof session.user & { role: string; isActive: boolean }).role = dbUser.role;
+          (session.user as typeof session.user & { role: string; isActive: boolean }).isActive = dbUser.isActive;
+        }
       }
       return session;
     },
   },
   events: {
-    async signIn() {
-      // no-op in Phase 0
+    async signIn({ user, account }) {
+      if (!user.id) return;
+      const provider = (account?.provider ?? 'google') as 'google' | 'github';
+      // TODO Phase 7: emit PostHog 'session_started' event here
+      await recordSignIn({ userId: user.id, provider });
     },
   },
 };

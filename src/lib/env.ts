@@ -38,6 +38,9 @@ export const envSchema = z.object({
   SENTRY_PROJECT: z.string().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
 
+  // Admin contact email (shown on not_allowlisted error page)
+  ADMIN_CONTACT_EMAIL: z.string().email().optional(),
+
   // Node environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
