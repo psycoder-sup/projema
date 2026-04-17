@@ -6,7 +6,7 @@
  * then access the db via getDb() or the exported fixture functions.
  */
 import { PrismaClient } from '@prisma/client';
-import type { User, Sprint, SprintGoal, Todo } from '@/types/domain';
+import type { User, Sprint, SprintGoal, Todo, TodoLink, TodoDocument } from '@/types/domain';
 import { toIsoDate } from '@/lib/utils/date';
 
 // Lazy client — created on first access so that beforeAll can set DATABASE_URL first.
@@ -44,6 +44,8 @@ export async function resetDb(): Promise<void> {
       sessions,
       accounts,
       verification_tokens,
+      todo_documents,
+      todo_links,
       todos,
       sprint_goals,
       sprints,
@@ -234,11 +236,13 @@ export async function seedSprint(
 }
 
 /**
- * Create a minimal Todo row.
+ * Create a Todo row (with optional description, completedAt, etc.).
+ * Returns the domain Todo with links + document (both empty/null by default).
  */
 export async function seedTodo(
   overrides: {
     title?: string;
+    description?: string | null;
     status?: 'todo' | 'in_progress' | 'done';
     priority?: 'low' | 'medium' | 'high';
     sprintId?: string | null;
@@ -246,6 +250,7 @@ export async function seedTodo(
     assigneeUserId?: string | null;
     dueDate?: string | null;
     createdByUserId?: string;
+    completedAt?: Date | null;
   } = {}
 ): Promise<Todo> {
   const db = getDb();
@@ -264,6 +269,7 @@ export async function seedTodo(
   const rawTodo = await db.todo.create({
     data: {
       title: overrides.title ?? `Test Todo ${Date.now()}`,
+      description: overrides.description ?? null,
       status: overrides.status ?? 'todo',
       priority: overrides.priority ?? 'medium',
       sprintId: overrides.sprintId ?? null,
@@ -271,6 +277,7 @@ export async function seedTodo(
       assigneeUserId: overrides.assigneeUserId ?? null,
       dueDate: overrides.dueDate ? new Date(overrides.dueDate) : null,
       createdByUserId,
+      completedAt: overrides.completedAt ?? null,
     },
   });
 
@@ -290,6 +297,71 @@ export async function seedTodo(
     updatedAt: rawTodo.updatedAt,
     links: [],
     document: null,
+  };
+}
+
+/**
+ * Create a TodoLink row.
+ */
+export async function seedTodoLink({
+  todoId,
+  url,
+  label,
+  position,
+}: {
+  todoId: string;
+  url: string;
+  label?: string | null;
+  position?: number;
+}): Promise<TodoLink> {
+  const db = getDb();
+  const raw = await db.todoLink.create({
+    data: {
+      todoId,
+      url,
+      label: label ?? null,
+      position: position ?? 0,
+    },
+  });
+  return {
+    id: raw.id,
+    todoId: raw.todoId,
+    url: raw.url,
+    label: raw.label,
+    position: raw.position,
+  };
+}
+
+/**
+ * Create a TodoDocument row.
+ */
+export async function seedTodoDocument({
+  todoId,
+  contentMarkdown,
+  updatedByUserId,
+}: {
+  todoId: string;
+  contentMarkdown: string;
+  updatedByUserId: string;
+}): Promise<TodoDocument> {
+  const db = getDb();
+  const raw = await db.todoDocument.upsert({
+    where: { todoId },
+    create: {
+      todoId,
+      contentMarkdown,
+      updatedByUserId,
+    },
+    update: {
+      contentMarkdown,
+      updatedByUserId,
+    },
+  });
+  return {
+    todoId: raw.todoId,
+    contentMarkdown: raw.contentMarkdown,
+    updatedAt: raw.updatedAt,
+    updatedByUserId: raw.updatedByUserId,
   };
 }
 
