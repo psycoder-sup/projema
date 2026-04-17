@@ -5,8 +5,8 @@
  * IMPORTANT: Call resetDbClient() after setting DATABASE_URL in beforeAll,
  * then access the db via getDb() or the exported fixture functions.
  */
-import { PrismaClient } from '@prisma/client';
-import type { User, Sprint, SprintGoal, Todo, TodoLink, TodoDocument } from '@/types/domain';
+import { PrismaClient, Prisma } from '@prisma/client';
+import type { User, Sprint, SprintGoal, Todo, TodoLink, TodoDocument, Comment, ActivityEvent, ActivityEventKind } from '@/types/domain';
 import { toIsoDate } from '@/lib/utils/date';
 
 // Lazy client — created on first access so that beforeAll can set DATABASE_URL first.
@@ -38,6 +38,8 @@ export async function resetDb(): Promise<void> {
   // Delete in dependency order: children before parents
   await client.$executeRawUnsafe(`
     TRUNCATE TABLE
+      rate_limit_buckets,
+      comments,
       activity_events,
       sessions_log,
       allowlist_entries,
@@ -417,6 +419,82 @@ export function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString();
+}
+
+// ============================================================================
+// Comment fixtures
+// ============================================================================
+
+/**
+ * Create a Comment row.
+ * Requires: todoId, authorUserId, body.
+ */
+export async function seedComment(overrides: {
+  todoId: string;
+  authorUserId: string;
+  body: string;
+  createdAt?: Date;
+  editedAt?: Date | null;
+}): Promise<Comment> {
+  const db = getDb();
+  const raw = await db.comment.create({
+    data: {
+      todoId: overrides.todoId,
+      authorUserId: overrides.authorUserId,
+      body: overrides.body,
+      createdAt: overrides.createdAt ?? new Date(),
+      editedAt: overrides.editedAt ?? null,
+    },
+  });
+  return {
+    id: raw.id,
+    todoId: raw.todoId,
+    authorUserId: raw.authorUserId,
+    body: raw.body,
+    createdAt: raw.createdAt,
+    editedAt: raw.editedAt,
+  };
+}
+
+// ============================================================================
+// Activity event fixtures
+// ============================================================================
+
+/**
+ * Create an ActivityEvent row directly (bypasses server actions).
+ * Timestamps should be spaced by +1ms if a test asserts strict ordering.
+ */
+export async function seedActivity(overrides: {
+  actorUserId: string;
+  kind?: ActivityEventKind;
+  targetTodoId?: string | null;
+  targetSprintId?: string | null;
+  payload?: Record<string, unknown> | null;
+  createdAt?: Date;
+}): Promise<ActivityEvent> {
+  const db = getDb();
+  const payloadJson = overrides.payload != null
+    ? (overrides.payload as Prisma.InputJsonValue)
+    : Prisma.JsonNull;
+  const raw = await db.activityEvent.create({
+    data: {
+      actorUserId: overrides.actorUserId,
+      kind: overrides.kind ?? 'todo_created',
+      targetTodoId: overrides.targetTodoId ?? null,
+      targetSprintId: overrides.targetSprintId ?? null,
+      payloadJson,
+      createdAt: overrides.createdAt ?? new Date(),
+    },
+  });
+  return {
+    id: raw.id,
+    actorUserId: raw.actorUserId,
+    kind: raw.kind as ActivityEventKind,
+    targetTodoId: raw.targetTodoId,
+    targetSprintId: raw.targetSprintId,
+    payload: raw.payloadJson != null ? (raw.payloadJson as Record<string, unknown>) : null,
+    createdAt: raw.createdAt,
+  };
 }
 
 // ============================================================================
