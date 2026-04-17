@@ -37,6 +37,7 @@ model User {
   todosAssigned      Todo[]           @relation("TodoAssignee")
   todosCreated       Todo[]           @relation("TodoCreatedBy")
   activityEvents     ActivityEvent[]  @relation("ActivityActor")
+  todoDocuments      TodoDocument[]   @relation("TodoDocumentUpdatedBy")
 
   @@map("users")
 }
@@ -161,10 +162,38 @@ model Todo {
   sprintGoal      SprintGoal?     @relation(fields: [sprintGoalId], references: [id], onDelete: Restrict)
   createdBy       User            @relation("TodoCreatedBy", fields: [createdByUserId], references: [id])
   activityEvents  ActivityEvent[] @relation("ActivityTargetTodo")
+  links           TodoLink[]
+  document        TodoDocument?
 
   @@index([assigneeUserId, status, dueDate(sort: Asc)])
   @@index([sprintId, sprintGoalId])
   @@map("todos")
+}
+
+model TodoLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  todoId    String   @map("todo_id") @db.Uuid
+  url       String
+  label     String?
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
+
+  @@index([todoId, position])
+  @@map("todo_links")
+}
+
+model TodoDocument {
+  todoId            String   @id @map("todo_id") @db.Uuid
+  contentMarkdown   String   @map("content_markdown")
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedByUserId   String   @map("updated_by_user_id") @db.Uuid
+
+  todo          Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  updatedByUser User @relation("TodoDocumentUpdatedBy", fields: [updatedByUserId], references: [id])
+
+  @@map("todo_documents")
 }
 
 model ActivityEvent {
