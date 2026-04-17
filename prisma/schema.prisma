@@ -40,6 +40,8 @@ model User {
   todoDocuments      TodoDocument[]   @relation("TodoDocumentUpdatedBy")
   comments           Comment[]        @relation("CommentAuthor")
   rateLimitBuckets   RateLimitBucket[] @relation("RateLimitBucketUser")
+  notifications      Notification[]   @relation("NotificationUser")
+  notificationsTriggered Notification[] @relation("NotificationTriggeredBy")
 
   @@map("users")
 }
@@ -167,6 +169,7 @@ model Todo {
   links           TodoLink[]
   document        TodoDocument?
   comments        Comment[]
+  notifications   Notification[]  @relation("NotificationTargetTodo")
 
   @@index([assigneeUserId, status, dueDate(sort: Asc)])
   @@index([sprintId, sprintGoalId])
@@ -246,4 +249,25 @@ model RateLimitBucket {
 
   @@index([userId, actionKey, eventAt(sort: Desc)])
   @@map("rate_limit_buckets")
+}
+
+// ============================================================================
+// Domain Models — Phase 6
+// ============================================================================
+
+model Notification {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  kind               String
+  targetTodoId       String    @map("target_todo_id") @db.Uuid
+  triggeredByUserId  String?   @map("triggered_by_user_id") @db.Uuid
+  readAt             DateTime? @map("read_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user              User  @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  targetTodo        Todo  @relation("NotificationTargetTodo", fields: [targetTodoId], references: [id], onDelete: Cascade)
+  triggeredByUser   User? @relation("NotificationTriggeredBy", fields: [triggeredByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt, createdAt(sort: Desc)], name: "notifications_user_read_created_idx")
+  @@map("notifications")
 }

@@ -8,6 +8,7 @@ import { prisma } from '@/server/db/client';
 import { mapTodoRow, mapTodoLinkRow, mapTodoDocumentRow } from '@/server/db/todo-mappers';
 import { mapCommentRow } from '@/server/db/comment-mappers';
 import { recordActivity } from '@/server/services/activity';
+import { createAssignedNotification } from '@/server/services/notifications';
 import type { Todo, TodoLink, TodoDocument, Comment, Result, ServerActionError, User } from '@/types/domain';
 import {
   createTodoSchema,
@@ -106,6 +107,12 @@ export async function createTodo(
           kind: 'todo_assigned',
           targetTodoId: todo.id,
           payload: { assigneeUserId },
+        });
+
+        await createAssignedNotification(tx, {
+          userId: assigneeUserId,
+          targetTodoId: todo.id,
+          triggeredByUserId: ctx.actor.id,
         });
       }
 
@@ -243,8 +250,14 @@ export async function updateTodo(
             payload: { assigneeUserId: newAssigneeId },
           });
 
-          // Note: notification creation (kind='assigned') is implemented in Phase 6
-          // when the notifications table is added to the schema.
+          // FR-25: notify new assignee (only when assignee actually changed and is not the actor)
+          if (newAssigneeId !== ctx.actor.id) {
+            await createAssignedNotification(tx, {
+              userId: newAssigneeId,
+              targetTodoId: id,
+              triggeredByUserId: ctx.actor.id,
+            });
+          }
         }
       }
 

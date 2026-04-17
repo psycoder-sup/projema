@@ -8,6 +8,7 @@ import { prisma } from '@/server/db/client';
 import { mapCommentRow } from '@/server/db/comment-mappers';
 import { recordActivity } from '@/server/services/activity';
 import { checkRateLimit } from '@/server/services/rate-limit';
+import { createCommentOnAssignedNotification } from '@/server/services/notifications';
 import type { Comment, Result, ServerActionError, User } from '@/types/domain';
 import {
   postCommentSchema,
@@ -41,10 +42,8 @@ function validationError(message: string, field?: string): Result<never, ServerA
  * Side-effects:
  * - Inserts a comment row.
  * - Emits `comment_posted` activity event.
- * - TODO (Phase 6): If todo has an assignee and assignee != author, insert
- *   a notifications(kind='comment_on_assigned') row. The notifications table
- *   is added in Phase 6 — that insert is omitted here but the activity event
- *   IS emitted now.
+ * - If todo has an assignee and assignee != author, inserts a
+ *   notifications(kind='comment_on_assigned') row for the assignee (FR-25).
  * - TODO (Phase 7): Emit PostHog `comment_posted` event post-transaction.
  */
 export async function postComment(
@@ -97,11 +96,15 @@ export async function postComment(
         targetTodoId: todoId,
       });
 
-      // TODO (Phase 6): If the todo has an assignee and the assignee is not
-      // the author, insert a notifications row:
-      //   notifications(kind='comment_on_assigned', userId=assignee, targetTodoId=todoId, triggeredByUserId=actor)
-      // The notifications table does not exist until Phase 6.
-      // The activity event above IS emitted now so it shows in Team Activity.
+      // FR-25: If the todo has an assignee and the assignee is not the author,
+      // notify the assignee of the new comment.
+      if (todo.assigneeUserId && todo.assigneeUserId !== ctx.actor.id) {
+        await createCommentOnAssignedNotification(tx, {
+          userId: todo.assigneeUserId,
+          targetTodoId: todoId,
+          triggeredByUserId: ctx.actor.id,
+        });
+      }
 
       return { comment } as const;
     });

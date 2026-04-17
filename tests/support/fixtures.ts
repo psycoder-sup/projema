@@ -6,7 +6,7 @@
  * then access the db via getDb() or the exported fixture functions.
  */
 import { PrismaClient, Prisma } from '@prisma/client';
-import type { User, Sprint, SprintGoal, Todo, TodoLink, TodoDocument, Comment, ActivityEvent, ActivityEventKind } from '@/types/domain';
+import type { User, Sprint, SprintGoal, Todo, TodoLink, TodoDocument, Comment, ActivityEvent, ActivityEventKind, Notification, NotificationKind } from '@/types/domain';
 import { toIsoDate } from '@/lib/utils/date';
 
 // Lazy client — created on first access so that beforeAll can set DATABASE_URL first.
@@ -38,6 +38,7 @@ export async function resetDb(): Promise<void> {
   // Delete in dependency order: children before parents
   await client.$executeRawUnsafe(`
     TRUNCATE TABLE
+      notifications,
       rate_limit_buckets,
       comments,
       activity_events,
@@ -493,6 +494,44 @@ export async function seedActivity(overrides: {
     targetTodoId: raw.targetTodoId,
     targetSprintId: raw.targetSprintId,
     payload: raw.payloadJson != null ? (raw.payloadJson as Record<string, unknown>) : null,
+    createdAt: raw.createdAt,
+  };
+}
+
+// ============================================================================
+// Notification fixtures
+// ============================================================================
+
+/**
+ * Insert a Notification row directly (bypasses server actions).
+ * Defaults: kind='assigned', readAt=null.
+ */
+export async function seedNotification(overrides: {
+  userId: string;
+  targetTodoId: string;
+  kind?: NotificationKind;
+  triggeredByUserId?: string | null;
+  readAt?: Date | null;
+  createdAt?: Date;
+}): Promise<Notification> {
+  const db = getDb();
+  const raw = await db.notification.create({
+    data: {
+      userId: overrides.userId,
+      kind: overrides.kind ?? 'assigned',
+      targetTodoId: overrides.targetTodoId,
+      triggeredByUserId: overrides.triggeredByUserId ?? null,
+      readAt: overrides.readAt ?? null,
+      createdAt: overrides.createdAt ?? new Date(),
+    },
+  });
+  return {
+    id: raw.id,
+    userId: raw.userId,
+    kind: raw.kind as NotificationKind,
+    targetTodoId: raw.targetTodoId,
+    triggeredByUserId: raw.triggeredByUserId,
+    readAt: raw.readAt,
     createdAt: raw.createdAt,
   };
 }

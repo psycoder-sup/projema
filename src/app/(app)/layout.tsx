@@ -1,16 +1,12 @@
 /**
  * Authenticated app shell layout — FR-04.
  * Redirects to /sign-in if no session.
- * Renders Topbar with nav links, bell stub, user menu + sign-out on every authenticated route.
- *
- * Bell icon: Phase 5 stub — zero badge, inert popover with "You're all caught up."
- * Phase 6 will wire it to real notification data.
+ * Renders Topbar with nav links, BellMenu (Phase 6), user menu + sign-out on every authenticated route.
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth, signOut } from '@/server/auth';
 import { prisma } from '@/server/db/client';
-import { Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { BellMenu } from '@/components/layout/BellMenu';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -77,27 +74,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
           {/* Right side: bell + user menu */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Bell icon stub — Phase 5: inert, no data fetch */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative h-8 w-8 p-0"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-4 w-4" />
-                  {/* Zero badge — Phase 6 will make this dynamic */}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                  You&apos;re all caught up.
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* BellMenu — Phase 6: polls /api/notifications/poll every 30s */}
+            <BellMenu />
 
             {/* User menu */}
             <DropdownMenu>
