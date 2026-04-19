@@ -78,7 +78,7 @@ export default async function BacklogPage({ searchParams }: BacklogPageProps) {
       {todos.length === 0 ? (
         <EmptyState
           title="No backlog todos."
-          description="No backlog todos. Use Backlog to park work that isn't in a sprint yet."
+          description="Use Backlog to park work that isn't in a sprint yet."
           action={<NewTodoButton actor={actor} label="+ New todo" />}
         />
       ) : (

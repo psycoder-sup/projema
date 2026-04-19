@@ -12,6 +12,8 @@ import { ActiveSprintCard } from '@/components/dashboard/ActiveSprintCard';
 import { MyTodosCard } from '@/components/dashboard/MyTodosCard';
 import { UpcomingDeadlinesCard } from '@/components/dashboard/UpcomingDeadlinesCard';
 import { TeamActivityCard } from '@/components/dashboard/TeamActivityCard';
+import { env } from '@/lib/env';
+import { formatMastheadDate } from '@/lib/utils/date';
 import type { User } from '@/types/domain';
 
 export default async function DashboardPage() {
@@ -39,12 +41,7 @@ export default async function DashboardPage() {
 
   const data = await getDashboardData({ actor });
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const today = formatMastheadDate(new Date(), env.ORG_TIMEZONE);
 
   return (
     <div className="px-4 py-8 lg:px-10 lg:py-12">

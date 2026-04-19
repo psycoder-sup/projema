@@ -99,12 +99,6 @@
     background: hsl(var(--acid));
     color: hsl(var(--ink));
   }
-
-  /* Default focus — hard ink ring, no soft offset blur */
-  *:focus-visible {
-    outline: 3px solid hsl(var(--ink));
-    outline-offset: 2px;
-  }
 }
 
 @layer components {
@@ -122,44 +116,5 @@
   .display-lg {
     @apply font-display text-[clamp(2rem,4vw,3.25rem)] leading-[0.92] uppercase;
     letter-spacing: -0.015em;
-  }
-
-  /* Ruled divider — thick ink rule with an acid square at the inner corner */
-  .rule {
-    position: relative;
-    border-top: 2px solid hsl(var(--ink));
-  }
-
-  .rule::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: 0;
-    width: 10px;
-    height: 10px;
-    background: hsl(var(--acid));
-    border: 2px solid hsl(var(--ink));
-  }
-
-  /* Brutalist box — a square-edged ink-bordered container with hard shadow */
-  .brut-box {
-    @apply border-2 bg-card text-card-foreground shadow-brut;
-  }
-
-  .brut-box-sm {
-    @apply border-2 bg-card text-card-foreground shadow-brut-sm;
-  }
-
-  /* Pressable interaction — translate on active to "absorb" the shadow */
-  .brut-press {
-    @apply transition-transform duration-75;
-  }
-  .brut-press:active {
-    @apply translate-x-[3px] translate-y-[3px] shadow-none;
-  }
-
-  /* Sticker label — rotated inline tag */
-  .sticker {
-    @apply inline-flex items-center gap-1 border-2 border-ink bg-acid px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink;
   }
 }

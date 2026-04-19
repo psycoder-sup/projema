@@ -3,16 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { isNavLinkActive } from './nav-active';
 
 interface NavLinkProps {
   href: string;
   label: string;
+  exact?: boolean;
 }
 
-export function NavLink({ href, label }: NavLinkProps) {
+export function NavLink({ href, label, exact = false }: NavLinkProps) {
   const pathname = usePathname() ?? '';
-  const isActive =
-    href === '/dashboard' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = isNavLinkActive(pathname, href, exact);
 
   return (
     <Link

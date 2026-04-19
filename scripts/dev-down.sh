@@ -3,14 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Source .env.local so compose can interpolate DEV_DB_PORT while parsing the file.
-if [ -f .env.local ]; then
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env.local
-  set +a
-fi
+# Read DEV_DB_PORT from .env.local without sourcing (avoids shell metachar
+# evaluation on user-supplied values). Compose interpolates ${DEV_DB_PORT}
+# while parsing docker-compose.dev.yml, so we just need to export it.
+read_env_port() {
+  [ -f .env.local ] || return 0
+  grep -m1 '^DEV_DB_PORT=' .env.local | sed 's/^DEV_DB_PORT=//; s/^"//; s/"$//; s/^'"'"'//; s/'"'"'$//' || true
+}
 
+export DEV_DB_PORT="${DEV_DB_PORT:-$(read_env_port)}"
 export DEV_DB_PORT="${DEV_DB_PORT:-5432}"
 
 PROJECT="$(basename "$PWD")"

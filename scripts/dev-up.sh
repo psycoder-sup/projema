@@ -3,13 +3,23 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# --- Source .env.local (if present) so DEV_DB_PORT / DATABASE_URL propagate ---
-if [ -f .env.local ]; then
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env.local
-  set +a
-fi
+# Read a single KEY=value line from a dotenv file without sourcing it.
+# Avoids executing shell metacharacters (e.g. $(...), backticks) that may
+# appear inside secret values. Strips surrounding single/double quotes.
+read_env() {
+  local key="$1" file="${2:-.env.local}"
+  [ -f "$file" ] || return 0
+  local raw
+  raw="$(grep -m1 "^${key}=" "$file" || true)"
+  [ -n "${raw}" ] || return 0
+  raw="${raw#${key}=}"
+  raw="${raw%\"}"; raw="${raw#\"}"
+  raw="${raw%\'}"; raw="${raw#\'}"
+  printf '%s' "${raw}"
+}
+
+# Pull only the keys this script actually needs.
+: "${DEV_DB_PORT:=$(read_env DEV_DB_PORT)}"
 
 is_port_free() {
   ! lsof -iTCP:"$1" -sTCP:LISTEN -n -P >/dev/null 2>&1
@@ -55,12 +65,10 @@ touch .env.local
 if ! grep -q '^DATABASE_URL=' .env.local; then
   echo "DATABASE_URL=${EXPECTED_URL}" >> .env.local
   echo "==> Seeded DATABASE_URL in .env.local"
-  export DATABASE_URL="${EXPECTED_URL}"
 fi
 if ! grep -q '^DIRECT_URL=' .env.local; then
   echo "DIRECT_URL=${EXPECTED_URL}" >> .env.local
   echo "==> Seeded DIRECT_URL in .env.local"
-  export DIRECT_URL="${EXPECTED_URL}"
 fi
 
 # --- Inherit non-DB secrets from the main worktree's .env.local ---
@@ -120,19 +128,17 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' "${CONTAINER_ID}" 2>/dev
 done
 
 # --- Warn if DATABASE_URL in .env.local points at a different localhost port ---
-if [ -f .env.local ] && grep -q '^DATABASE_URL=' .env.local; then
-  CURRENT_URL="$(grep -m1 '^DATABASE_URL=' .env.local | sed 's/^DATABASE_URL=//' | tr -d '"'"'")"
-  case "${CURRENT_URL}" in
-    *localhost*|*127.0.0.1*)
-      if [[ "${CURRENT_URL}" != *":${DEV_DB_PORT}/"* ]]; then
-        echo ""
-        echo "WARNING: DATABASE_URL in .env.local does not match DEV_DB_PORT=${DEV_DB_PORT}."
-        echo "  Update it to: ${EXPECTED_URL}"
-        echo ""
-      fi
-      ;;
-  esac
-fi
+CURRENT_URL="$(read_env DATABASE_URL)"
+case "${CURRENT_URL}" in
+  *localhost*|*127.0.0.1*)
+    if [[ "${CURRENT_URL}" != *":${DEV_DB_PORT}/"* ]]; then
+      echo ""
+      echo "WARNING: DATABASE_URL in .env.local does not match DEV_DB_PORT=${DEV_DB_PORT}."
+      echo "  Update it to: ${EXPECTED_URL}"
+      echo ""
+    fi
+    ;;
+esac
 
 echo "==> Applying Prisma migrations..."
 if [ -f .env.local ]; then

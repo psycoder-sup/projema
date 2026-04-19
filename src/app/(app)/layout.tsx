@@ -72,9 +72,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             aria-label="Main navigation"
             className="flex flex-1 items-stretch overflow-x-auto"
           >
-            <NavLink href="/dashboard" label="Dashboard" />
+            <NavLink href="/dashboard" label="Dashboard" exact />
             <NavLink href="/sprints" label="Sprints" />
-            <NavLink href="/todos" label="Backlog" />
+            <NavLink href="/todos" label="Backlog" exact />
             <NavLink href="/todos/mine" label="Mine" />
             {isAdmin && <NavLink href="/admin/members" label="Members" />}
             {isAdmin && <NavLink href="/admin/wau" label="WAU" />}
@@ -86,6 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  type="button"
                   className="flex h-9 w-9 items-center justify-center border-2 border-ink bg-paper transition-[transform,background-color] hover:bg-acid active:translate-x-[1px] active:translate-y-[1px]"
                   aria-label="Account menu"
                 >

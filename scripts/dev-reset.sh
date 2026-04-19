@@ -3,15 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Source .env.local so docker compose can interpolate DEV_DB_PORT while
-# parsing the file (the value doesn't matter for `down -v`, but compose
-# will warn if it's unset).
-if [ -f .env.local ]; then
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env.local
-  set +a
-fi
+# Read DEV_DB_PORT from .env.local without sourcing the file (avoids shell
+# metachar evaluation on secrets). The value doesn't matter for `down -v`,
+# but compose warns if it's unset.
+read_env_port() {
+  [ -f .env.local ] || return 0
+  grep -m1 '^DEV_DB_PORT=' .env.local | sed 's/^DEV_DB_PORT=//; s/^"//; s/"$//; s/^'"'"'//; s/'"'"'$//' || true
+}
+
+export DEV_DB_PORT="${DEV_DB_PORT:-$(read_env_port)}"
 export DEV_DB_PORT="${DEV_DB_PORT:-5432}"
 
 PROJECT="$(basename "$PWD")"
