@@ -1,10 +1,9 @@
 /**
  * Active Sprint dashboard card — Phase 5 (FR-20).
- * Shows sprint name, dates, status badge, per-goal progress bars, and overall progress.
- * Empty state: "No active sprint. Create one and mark it active to start tracking."
+ * Brutalist treatment: segmented progress bar, mono dates, acid accent on active.
  */
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { DashboardData } from '@/types/domain';
@@ -15,18 +14,28 @@ interface ActiveSprintCardProps {
   data: DashboardData['activeSprint'];
 }
 
-function ProgressBar({ value, max }: { value: number; max: number }) {
-  const pct = max === 0 ? 0 : Math.round((value / max) * 100);
+function SegmentBar({ done, total }: { done: number; total: number }) {
+  const segments = Math.max(total, 1);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   return (
-    <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-      <div
-        className="bg-primary h-2 rounded-full transition-all duration-300"
-        style={{ width: `${pct}%` }}
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      />
+    <div
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className="flex h-4 w-full border-2 border-ink"
+    >
+      {Array.from({ length: segments }).map((_, i) => {
+        const filled = i < done;
+        return (
+          <div
+            key={i}
+            className={`flex-1 ${filled ? 'bg-acid' : 'bg-paper'} ${
+              i !== segments - 1 ? 'border-r-2 border-ink' : ''
+            }`}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -41,55 +50,60 @@ function GoalProgressRow({
   total: number;
 }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-foreground truncate max-w-[70%]">{name}</span>
-        <span className="text-muted-foreground shrink-0 ml-2">
-          {done}/{total}
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-sm font-medium text-foreground">{name}</span>
+        <span className="shrink-0 font-mono text-[11px] font-bold tabular-nums text-ink">
+          {String(done).padStart(2, '0')}/{String(total).padStart(2, '0')}
         </span>
       </div>
-      <ProgressBar value={done} max={total} />
+      <SegmentBar done={done} total={total} />
     </div>
   );
 }
 
 function ActiveSprintContent({ data }: { data: ActiveSprintData }) {
   const { sprint, goalProgress, overall } = data;
-
-  const overallPct =
-    overall.total === 0 ? 0 : Math.round((overall.done / overall.total) * 100);
+  const overallPct = overall.total === 0 ? 0 : Math.round((overall.done / overall.total) * 100);
 
   return (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-base truncate">{sprint.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {sprint.startDate} → {sprint.endDate}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-xl uppercase leading-tight text-ink">
+            {sprint.name}
+          </p>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            {sprint.startDate}
+            <span className="mx-1.5 text-ink">→</span>
+            {sprint.endDate}
           </p>
         </div>
-        <Badge variant="default" className="shrink-0 bg-green-600 hover:bg-green-600">
-          Active
+        <Badge variant="acid" className="shrink-0">
+          ● Live
         </Badge>
       </div>
 
-      {/* Overall progress */}
-      <div className="mt-4 space-y-1">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-foreground">Overall</span>
-          <span className="text-muted-foreground">
-            {overall.done}/{overall.total} ({overallPct}%)
+      {/* Overall — big number, inline */}
+      <div className="mt-5 border-2 border-ink bg-paper p-4">
+        <div className="flex items-baseline justify-between">
+          <span className="kicker">Overall</span>
+          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            {overall.done}/{overall.total}
           </span>
         </div>
-        <ProgressBar value={overall.done} max={overall.total} />
+        <div className="mt-1 flex items-baseline gap-3">
+          <span className="font-display text-5xl leading-none tabular-nums">{overallPct}</span>
+          <span className="font-display text-xl leading-none text-muted-foreground">%</span>
+        </div>
+        <div className="mt-3">
+          <SegmentBar done={overall.done} total={Math.max(overall.total, 1)} />
+        </div>
       </div>
 
-      {/* Per-goal progress */}
       {goalProgress.length > 0 && (
-        <div className="mt-4 space-y-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Goals
-          </p>
+        <div className="mt-5 space-y-4">
+          <p className="kicker">Goals</p>
           {goalProgress.map((gp) => (
             <GoalProgressRow
               key={gp.goalId ?? '__unassigned__'}
@@ -106,18 +120,25 @@ function ActiveSprintContent({ data }: { data: ActiveSprintData }) {
 
 export function ActiveSprintCard({ data }: ActiveSprintCardProps) {
   return (
-    <Card className="h-full flex flex-col" aria-label="Active sprint">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Active Sprint</CardTitle>
+    <Card className="flex h-full flex-col shadow-brut" aria-label="Active sprint">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="kicker">01 —</span>
+          <h2 className="font-display text-lg uppercase tracking-tight">Active Sprint</h2>
+        </div>
+        <span aria-hidden className="h-3 w-3 bg-acid border-2 border-ink" />
       </CardHeader>
       <CardContent className="flex-1">
         {data === null ? (
-          <div className="flex flex-col items-start gap-3 py-2">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col items-start gap-4 py-4">
+            <p className="font-display text-2xl uppercase leading-tight text-ink">
+              No active sprint.
+            </p>
+            <p className="font-sans text-sm text-muted-foreground">
               No active sprint — plan one to start tracking goals.
             </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/sprints/new">Create sprint</Link>
+            <Button asChild size="sm" variant="acid">
+              <Link href="/sprints/new">+ Create sprint</Link>
             </Button>
           </div>
         ) : (

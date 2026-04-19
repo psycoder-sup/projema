@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/server/db/client';
 import { TodoListItem } from '@/components/todos/TodoListItem';
 import { NewTodoButton } from '@/components/todos/NewTodoButton';
+import { EmptyState } from '@/components/empty-states/EmptyState';
 import type { TodoStatus, TodoPriority } from '@/types/domain';
 
 interface BacklogPageProps {
@@ -53,23 +54,35 @@ export default async function BacklogPage({ searchParams }: BacklogPageProps) {
   const todos = result.ok ? result.data : [];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Backlog</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            {todos.length} todo{todos.length !== 1 ? 's' : ''}
-          </span>
-          <NewTodoButton actor={actor} />
+    <div className="mx-auto max-w-5xl px-4 py-8 lg:px-10 lg:py-12">
+      <header className="mb-8 border-b-2 border-ink pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="kicker mb-3">
+              <span className="mr-2 inline-block border-2 border-ink bg-acid px-1.5 py-[2px] text-ink">
+                VOL.03
+              </span>
+              Unassigned work
+            </p>
+            <h1 className="display-lg">Backlog</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              {String(todos.length).padStart(2, '0')} {todos.length === 1 ? 'todo' : 'todos'}
+            </span>
+            <NewTodoButton actor={actor} />
+          </div>
         </div>
-      </div>
+      </header>
 
       {todos.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>No backlog todos. Use Backlog to park work that isn&apos;t in a sprint yet.</p>
-        </div>
+        <EmptyState
+          title="No backlog todos."
+          description="No backlog todos. Use Backlog to park work that isn't in a sprint yet."
+          action={<NewTodoButton actor={actor} label="+ New todo" />}
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {todos.map((todo) => (
             <TodoListItem key={todo.id} todo={todo} />
           ))}

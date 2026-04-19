@@ -2,58 +2,164 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   PROJEMA — NEO-BRUTALIST DESIGN SYSTEM
+   Paper + ink + acid. Hard edges. No polite gradients.
+   ============================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* Core brutalist palette (HSL) */
+    --paper: 44 30% 93%;        /* warm off-cream #F2EFE6 */
+    --ink: 30 8% 6%;            /* near-black warm #110F0C */
+    --acid: 72 100% 56%;        /* acid lime #D4FF2A */
+    --klein: 230 98% 46%;       /* klein blue #0B20EE */
+    --rust: 10 96% 55%;         /* hot rust-red #FB3F1B */
+
+    /* shadcn-compatible aliases mapped onto the brutalist palette */
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: 44 30% 96%;                 /* slightly lighter paper */
+    --card-foreground: var(--ink);
+    --popover: 44 30% 96%;
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--paper);
+    --secondary: 44 18% 86%;            /* toned paper */
+    --secondary-foreground: var(--ink);
+    --muted: 44 18% 86%;
+    --muted-foreground: 30 5% 34%;      /* warm graphite */
+    --accent: var(--acid);
+    --accent-foreground: var(--ink);
+    --destructive: var(--rust);
+    --destructive-foreground: 0 0% 100%;
+    --border: var(--ink);               /* borders are INK, always */
+    --input: var(--ink);
+    --ring: var(--ink);
+    --radius: 0rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --paper: 30 8% 7%;                  /* charcoal */
+    --ink: 44 30% 94%;                  /* bone */
+    --acid: 72 100% 56%;
+    --klein: 226 98% 66%;
+    --rust: 10 96% 62%;
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: 30 6% 10%;
+    --card-foreground: var(--ink);
+    --popover: 30 6% 10%;
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--paper);
+    --secondary: 30 5% 14%;
+    --secondary-foreground: var(--ink);
+    --muted: 30 5% 14%;
+    --muted-foreground: 40 12% 66%;
+    --accent: var(--acid);
+    --accent-foreground: 30 8% 7%;
+    --destructive: var(--rust);
+    --destructive-foreground: 30 8% 7%;
+    --border: var(--ink);
+    --input: var(--ink);
+    --ring: var(--ink);
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    border-color: hsl(var(--ink));
   }
+
+  html {
+    /* Warm paper grain — faint crosshatch noise */
+    background-color: hsl(var(--paper));
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'ss01', 'cv11';
+    background-image:
+      radial-gradient(hsl(var(--ink) / 0.035) 1px, transparent 1px),
+      radial-gradient(hsl(var(--ink) / 0.025) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px;
+    background-position: 0 0, 12px 12px;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+    font-feature-settings: 'ss01';
+  }
+
+  /* Selection: acid highlight on ink */
+  ::selection {
+    background: hsl(var(--acid));
+    color: hsl(var(--ink));
+  }
+
+  /* Default focus — hard ink ring, no soft offset blur */
+  *:focus-visible {
+    outline: 3px solid hsl(var(--ink));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Brutalist kicker — small uppercase monospace label (e.g. "01 / ACTIVE SPRINT") */
+  .kicker {
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-foreground/75;
+  }
+
+  /* Display headline helpers */
+  .display-xl {
+    @apply font-display text-[clamp(2.5rem,7vw,5rem)] leading-[0.9] uppercase;
+    letter-spacing: -0.02em;
+  }
+
+  .display-lg {
+    @apply font-display text-[clamp(2rem,4vw,3.25rem)] leading-[0.92] uppercase;
+    letter-spacing: -0.015em;
+  }
+
+  /* Ruled divider — thick ink rule with an acid square at the inner corner */
+  .rule {
+    position: relative;
+    border-top: 2px solid hsl(var(--ink));
+  }
+
+  .rule::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    background: hsl(var(--acid));
+    border: 2px solid hsl(var(--ink));
+  }
+
+  /* Brutalist box — a square-edged ink-bordered container with hard shadow */
+  .brut-box {
+    @apply border-2 bg-card text-card-foreground shadow-brut;
+  }
+
+  .brut-box-sm {
+    @apply border-2 bg-card text-card-foreground shadow-brut-sm;
+  }
+
+  /* Pressable interaction — translate on active to "absorb" the shadow */
+  .brut-press {
+    @apply transition-transform duration-75;
+  }
+  .brut-press:active {
+    @apply translate-x-[3px] translate-y-[3px] shadow-none;
+  }
+
+  /* Sticker label — rotated inline tag */
+  .sticker {
+    @apply inline-flex items-center gap-1 border-2 border-ink bg-acid px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink;
   }
 }

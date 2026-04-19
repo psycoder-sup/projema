@@ -12,7 +12,6 @@
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +54,7 @@ function BadgeCount({ count }: { count: number }) {
   return (
     <span
       aria-label={`${count} unread notifications`}
-      className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white"
+      className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center border-2 border-ink bg-rust px-0.5 font-mono text-[9px] font-bold text-white"
     >
       {count > 99 ? '99+' : count}
     </span>
@@ -127,15 +126,14 @@ export function BellMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="relative h-8 w-8 p-0"
+        <button
+          type="button"
+          className="relative flex h-9 w-9 items-center justify-center border-2 border-ink bg-paper transition-[transform,background-color] hover:bg-acid active:translate-x-[1px] active:translate-y-[1px]"
           aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-4 w-4" strokeWidth={2.5} />
           <BadgeCount count={unreadCount} />
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>

@@ -1,7 +1,7 @@
 /**
  * Authenticated app shell layout — FR-04.
  * Redirects to /sign-in if no session.
- * Renders Topbar with nav links, BellMenu (Phase 6), user menu + sign-out on every authenticated route.
+ * Renders the brutalist Topbar: wordmark + nav + BellMenu + user menu on every authenticated route.
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -15,9 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { BellMenu } from '@/components/layout/BellMenu';
+import { NavLink } from '@/components/layout/NavLink';
 import { PostHogPageView } from '@/components/layout/PostHogPageView';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = session.user;
   const initials = (user.name ?? user.email ?? 'U').charAt(0).toUpperCase();
 
-  // Check if the user is admin (for the Members nav link)
   let isAdmin = false;
   if (user.id) {
     const dbUser = await prisma.user.findUnique({
@@ -45,57 +44,49 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Skip link for keyboard users — WCAG 2.4.1 */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-acid focus:text-ink focus:border-2 focus:border-ink focus:shadow-brut focus:outline-none"
       >
         Skip to main content
       </a>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center gap-4 px-4">
-          {/* App name / logo */}
+
+      <header className="sticky top-0 z-50 w-full border-b-2 border-ink bg-paper">
+        <div className="flex h-16 items-stretch">
+          {/* Wordmark block — acid square beside the name */}
           <Link
             href="/dashboard"
-            className="font-semibold text-sm shrink-0 hover:opacity-80 transition-opacity"
+            className="group flex items-center gap-3 border-r-2 border-ink px-5 transition-colors hover:bg-acid"
           >
-            Sprint Todo
+            <span
+              aria-hidden
+              className="h-5 w-5 border-2 border-ink bg-acid group-hover:bg-ink"
+            />
+            <span className="font-display text-lg uppercase leading-none tracking-tight">
+              Projema
+            </span>
+            <span className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground md:inline">
+              /v.01
+            </span>
           </Link>
 
-          {/* Navigation links */}
-          <nav className="flex items-center gap-1 flex-1 overflow-x-auto" aria-label="Main navigation">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/sprints">Sprints</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/todos">Todos</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/todos/mine">My Todos</Link>
-            </Button>
-            {isAdmin && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/members">Members</Link>
-              </Button>
-            )}
-            {isAdmin && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/wau">WAU</Link>
-              </Button>
-            )}
+          <nav
+            aria-label="Main navigation"
+            className="flex flex-1 items-stretch overflow-x-auto"
+          >
+            <NavLink href="/dashboard" label="Dashboard" />
+            <NavLink href="/sprints" label="Sprints" />
+            <NavLink href="/todos" label="Backlog" />
+            <NavLink href="/todos/mine" label="Mine" />
+            {isAdmin && <NavLink href="/admin/members" label="Members" />}
+            {isAdmin && <NavLink href="/admin/wau" label="WAU" />}
           </nav>
 
-          {/* Right side: bell + user menu */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* BellMenu — Phase 6: polls /api/notifications/poll every 30s */}
+          <div className="flex items-center gap-2 border-l-2 border-ink px-3">
             <BellMenu />
 
-            {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full p-0"
+                <button
+                  className="flex h-9 w-9 items-center justify-center border-2 border-ink bg-paper transition-[transform,background-color] hover:bg-acid active:translate-x-[1px] active:translate-y-[1px]"
                   aria-label="Account menu"
                 >
                   <Avatar
@@ -104,16 +95,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     fallback={initials}
                     size="sm"
                   />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     {user.name && (
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="font-sans text-sm font-semibold leading-none normal-case tracking-normal">
+                        {user.name}
+                      </p>
                     )}
                     {user.email && (
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      <p className="font-mono text-[10px] leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
                     )}
                   </div>
                 </DropdownMenuLabel>
@@ -135,8 +130,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
+
       <PostHogPageView />
-      <main id="main-content" className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">
+        {children}
+      </main>
+
+      <footer className="mt-12 border-t-2 border-ink bg-paper">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span>Projema / Sprint-Todo Control</span>
+          <span aria-hidden>◼ ◻ ◼ ◻ ◼</span>
+          <span>Made by the team — built to ship.</span>
+        </div>
+      </footer>
     </div>
   );
 }

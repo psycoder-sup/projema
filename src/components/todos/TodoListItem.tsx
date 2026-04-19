@@ -8,21 +8,29 @@ interface TodoListItemProps {
 }
 
 export function TodoListItem({ todo }: TodoListItemProps) {
+  const idShort = todo.id.slice(0, 6).toUpperCase();
   return (
     <Link
       href={`/todos/${todo.id}`}
-      className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 hover:bg-accent/50 transition-colors"
+      className="group relative flex items-start gap-4 border-2 border-ink bg-card p-4 transition-[transform,box-shadow,background-color] duration-100 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:bg-acid hover:shadow-brut-sm"
     >
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{todo.title}</p>
+      <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-ink/70">
+        T-{idShort}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-ink">{todo.title}</p>
         {todo.description && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{todo.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground group-hover:text-ink/80">
+            {todo.description}
+          </p>
         )}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
           <TodoStatusChip status={todo.status} />
           <TodoPriorityChip priority={todo.priority} />
           {todo.dueDate && (
-            <span className="text-xs text-muted-foreground">Due {todo.dueDate}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-ink/70">
+              Due · {todo.dueDate}
+            </span>
           )}
         </div>
       </div>
