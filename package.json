@@ -22,6 +22,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "dev:up": "./scripts/dev-up.sh",
     "dev:down": "./scripts/dev-down.sh",
+    "dev:reset": "./scripts/dev-reset.sh",
     "postinstall": "prisma generate"
   },
   "dependencies": {
