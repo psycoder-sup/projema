@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,16 +29,16 @@ interface SprintCardProps {
   onMutate?: () => void;
 }
 
-const statusBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+const statusBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive' | 'acid'> = {
   planned: 'secondary',
-  active: 'default',
-  completed: 'outline',
+  active: 'acid',
+  completed: 'default',
 };
 
 const statusLabel: Record<string, string> = {
   planned: 'Planned',
-  active: 'Active',
-  completed: 'Completed',
+  active: '● Live',
+  completed: 'Done',
 };
 
 export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
@@ -91,27 +91,44 @@ export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
     }
   }
 
+  const idShort = sprint.id.slice(0, 6).toUpperCase();
+
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div className="flex-1 min-w-0 mr-2">
-            <CardTitle className="text-base font-semibold truncate">
-              <a
-                href={`/sprints/${sprint.id}`}
-                className="hover:underline"
-              >
-                {sprint.name}
-              </a>
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              {sprint.startDate} – {sprint.endDate}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant={statusBadgeVariant[sprint.status] ?? 'secondary'}>
+      <Card className="group flex flex-col transition-[transform,box-shadow] duration-100 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-brut">
+        <CardHeader className="space-y-0 pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              SPR-{idShort}
+            </span>
+            <Badge variant={statusBadgeVariant[sprint.status] ?? 'secondary'} className="shrink-0">
               {statusLabel[sprint.status] ?? sprint.status}
             </Badge>
+          </div>
+          <a
+            href={`/sprints/${sprint.id}`}
+            className="mt-2 block truncate font-display text-xl uppercase leading-tight tracking-tight hover:text-ink group-hover:underline decoration-acid decoration-4 underline-offset-4"
+          >
+            {sprint.name}
+          </a>
+        </CardHeader>
+
+        <CardContent className="flex flex-1 flex-col justify-between gap-3 pt-0">
+          <div className="border-y-2 border-ink/80 py-2 font-mono text-[11px] uppercase tracking-wider text-ink">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Start</span>
+              <span className="tabular-nums">{sprint.startDate}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-muted-foreground">End</span>
+              <span className="tabular-nums">{sprint.endDate}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              Goals · <span className="font-bold text-ink">{sprint.goals.length}</span>
+            </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
@@ -121,7 +138,7 @@ export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     className="h-4 w-4"
@@ -159,7 +176,7 @@ export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      className="text-destructive"
+                      className="text-rust focus:bg-rust focus:text-white"
                       onClick={() => setConfirmDelete(true)}
                     >
                       Delete
@@ -169,12 +186,12 @@ export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            {sprint.goals.length} {sprint.goals.length === 1 ? 'goal' : 'goals'}
-          </div>
-          {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+
+          {error && (
+            <p className="mt-1 border-2 border-ink bg-rust px-2 py-1 font-mono text-[10px] uppercase text-white">
+              {error}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -191,7 +208,7 @@ export function SprintCard({ sprint, actor, onMutate }: SprintCardProps) {
             <Button variant="outline" onClick={() => setConfirmActivate(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleActivate} disabled={loading}>
+            <Button variant="acid" onClick={handleActivate} disabled={loading}>
               {loading ? 'Activating…' : 'Make active'}
             </Button>
           </DialogFooter>
