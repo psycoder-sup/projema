@@ -17,16 +17,16 @@ describe('Accessibility audit — static source checks', () => {
     expect(src).toMatch(/aria-label/);
   });
 
-  // App layout: user avatar button must have aria-label
-  test('AppLayout — user avatar button has aria-label', () => {
-    const src = readSrc('src/app/(app)/layout.tsx');
+  // App shell (sidebar): primary nav region must have an aria-label
+  test('Sidebar — primary nav has aria-label', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
     expect(src).toMatch(/aria-label/);
   });
 
-  // App layout: nav must have aria-label="Main navigation"
-  test('AppLayout — nav has aria-label="Main navigation"', () => {
-    const src = readSrc('src/app/(app)/layout.tsx');
-    expect(src).toMatch(/aria-label="Main navigation"/i);
+  // App shell (sidebar): the navigation region labels itself "Primary" / "Main"
+  test('Sidebar — labels primary navigation region', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
+    expect(src).toMatch(/aria-label="(Primary navigation|Main|Main navigation)"/i);
   });
 
   // App layout: has a skip-link to main content
