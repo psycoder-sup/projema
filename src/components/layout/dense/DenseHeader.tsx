@@ -23,9 +23,9 @@ const CRUMB_LABELS: Record<string, string> = {
   new: 'New',
 };
 
-// Matches: cuid / cuid2 (`c` + 24+ alphanumerics), uuid v4, or numeric-only ids.
-// Deliberately excludes a generic long-alphanumeric branch because it would
-// swallow human slugs like `retrospective-playbook-2026-q2`.
+// Matches cuid/cuid2, uuid v4, or numeric ids. Excludes a generic
+// long-alphanumeric branch so human slugs like `q2-planning-2026` are kept
+// as display segments rather than being replaced with "Details".
 const DYNAMIC_ID_RE = /^(c[a-z0-9]{24,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)$/i;
 
 function looksLikeId(seg: string): boolean {
@@ -43,12 +43,10 @@ function deriveCrumbs(pathname: string): string[] {
       out.push(mapped);
       continue;
     }
-    // Detail page under a known collection: `/sprints/<id>`, `/todos/<id>`, `/admin/members/<id>`.
     if (looksLikeId(s)) {
       out.push('Details');
       continue;
     }
-    // Humanise unknown slug segments.
     out.push(s.charAt(0).toUpperCase() + s.slice(1));
   }
   return out;
@@ -59,9 +57,6 @@ export function DenseHeader({ orgName, actor }: DenseHeaderProps) {
   const router = useRouter();
   const crumbs = deriveCrumbs(pathname);
 
-  // Global "C" shortcut: go to new-todo form. Ignored when the user is
-  // typing in an input/textarea/contenteditable OR when focus is inside
-  // (or a) Radix menu/dialog/listbox — standard Linear behaviour.
   useEffect(() => {
     function isTypingTarget(target: EventTarget | null): boolean {
       if (!(target instanceof HTMLElement)) return false;

@@ -1,10 +1,5 @@
 'use client';
-/**
- * Account menu for the dense sidebar me-card (FR-04).
- * The trigger is the entire me-card; the dropdown contains the Sign out
- * action. Uses the `next-auth/react` client `signOut` — POSTs to
- * `/api/auth/signout` and then redirects to `/sign-in`.
- */
+
 import { signOut } from 'next-auth/react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import { DenseAvatar } from './DenseAvatar';

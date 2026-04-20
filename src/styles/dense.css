@@ -497,6 +497,9 @@
   align-items: center;
   gap: 10px;
 }
+.dense-app .dash-sub--spaced {
+  margin-top: 6px;
+}
 .dense-app .dot-sep {
   width: 3px;
   height: 3px;
@@ -585,6 +588,22 @@
 .dense-app .mini-link:hover {
   background: var(--bg-3);
   color: var(--fg-1);
+}
+.dense-app .mini-link--muted {
+  color: var(--fg-2);
+}
+.dense-app .mini-link--spaced {
+  margin-top: 6px;
+}
+.dense-app .mini-link--spaced-lg {
+  margin-top: 8px;
+}
+
+.dense-app .avatar-stack {
+  display: flex;
+}
+.dense-app .avatar-stack > :not(:first-child) {
+  margin-left: -5px;
 }
 
 /* ---------- Sprint Overview (signature) ---------- */
@@ -763,6 +782,9 @@
   color: var(--fg-3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+.dense-app .goals-head .t--dim {
+  color: var(--fg-4);
 }
 .dense-app .goals-head .line {
   flex: 1;
@@ -1050,7 +1072,13 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--c, var(--fg-3));
+  background: var(--dot-c, var(--fg-3));
+}
+.dense-app .todo-tag--backlog {
+  opacity: 0.75;
+}
+.dense-app .todo-tag--backlog .dot {
+  background: var(--fg-4);
 }
 
 .dense-app .todo-due {
@@ -1147,6 +1175,12 @@
 .dense-app .deadline-body .s .sep {
   color: var(--fg-4);
 }
+.dense-app .deadline-body .s .deadline-goal {
+  color: var(--fg-2);
+}
+.dense-app .deadline-body .s .deadline-goal--empty {
+  color: var(--fg-3);
+}
 
 /* ---------- Team activity ---------- */
 .dense-app .activity {
@@ -1189,6 +1223,9 @@
   color: var(--fg-1);
   vertical-align: baseline;
 }
+.dense-app .act-body .target {
+  color: var(--fg-1);
+}
 .dense-app .act-body .from {
   font-family: var(--font-dense-mono);
   font-size: 10.5px;
@@ -1222,6 +1259,9 @@
   color: var(--fg-1);
   font-size: 13px;
   font-weight: 500;
+}
+.dense-app .empty-state--inline {
+  padding: 12px 0;
 }
 
 /* Card entrance animation */

@@ -14,9 +14,10 @@ export function GoalRow({ name, done, total, color }: GoalRowProps) {
   const [animated, setAnimated] = useState(0);
 
   useEffect(() => {
+    if (animated === target) return;
     const t = setTimeout(() => setAnimated(target), 200);
     return () => clearTimeout(t);
-  }, [target]);
+  }, [target, animated]);
 
   const styleVars: CSSProperties = {
     ['--c' as string]: color,

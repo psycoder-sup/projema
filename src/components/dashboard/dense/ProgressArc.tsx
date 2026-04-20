@@ -12,9 +12,10 @@ export function ProgressArc({ pct, size = 180, stroke = 12 }: ProgressArcProps) 
   const [animated, setAnimated] = useState(0);
 
   useEffect(() => {
+    if (animated === pct) return;
     const t = setTimeout(() => setAnimated(pct), 120);
     return () => clearTimeout(t);
-  }, [pct]);
+  }, [pct, animated]);
 
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

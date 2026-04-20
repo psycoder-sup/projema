@@ -1,9 +1,5 @@
 'use client';
-/**
- * Notifications bell for the dense header (FR-27).
- * Re-uses the existing useNotifications poll hook + server actions; the
- * visual layer is dense-themed and owns the bell indicator.
- */
+
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';

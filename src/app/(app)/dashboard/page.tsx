@@ -1,9 +1,3 @@
-/**
- * Dashboard page — dense dark redesign (FR-20).
- * Server component. Loads getDashboardData + enriches it with the user/goal/
- * sprint lookups the visual layer needs (actor names on the activity feed,
- * assignee names on deadlines, goal names on todos).
- */
 import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
 import { prisma } from '@/server/db/client';
@@ -14,34 +8,17 @@ import { MyTodosCard } from '@/components/dashboard/MyTodosCard';
 import { UpcomingDeadlinesCard } from '@/components/dashboard/UpcomingDeadlinesCard';
 import { TeamActivityCard } from '@/components/dashboard/TeamActivityCard';
 import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
-import { sprintDayMath, todayIsoInZone } from '@/components/layout/dense/utils';
+import {
+  formatLocalStamp,
+  greetingFor,
+  sprintDayMath,
+  todayIsoInZone,
+} from '@/components/layout/dense/utils';
+import type { DashboardLookups } from '@/lib/dashboard/lookups';
 import { env } from '@/lib/env';
 
-function greetingFor(date: Date, timeZone: string): string {
-  const hour = Number(
-    date.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone }),
-  );
-  if (hour < 5) return 'Late night';
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function formatLocal(date: Date, timeZone: string): string {
-  const dayPart = date.toLocaleString('en-US', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone,
-  });
-  const timePart = date.toLocaleString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone,
-  });
-  return `${dayPart} · ${timePart} local`;
-}
+const ONLINE_WINDOW_MS = 15 * 60_000;
+const ONLINE_SAMPLE_SIZE = 4;
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -56,7 +33,6 @@ export default async function DashboardPage() {
 
   const data = await getDashboardData({ actor });
 
-  // ── Lookups: actors, assignees, goals ────────────────────────────────────
   const allUserIds = new Set<string>();
   for (const ev of data.activity) {
     allUserIds.add(ev.actorUserId);
@@ -72,9 +48,9 @@ export default async function DashboardPage() {
     if (t.sprintGoalId) goalIds.add(t.sprintGoalId);
   }
 
-  const sinceWindow = new Date(Date.now() - 15 * 60_000);
+  const sinceWindow = new Date(Date.now() - ONLINE_WINDOW_MS);
 
-  const [userRows, goalRows, onlineCount, onlineSample] = await Promise.all([
+  const [userRows, goalRows, onlineUsers] = await Promise.all([
     allUserIds.size > 0
       ? prisma.user.findMany({
           where: { id: { in: Array.from(allUserIds) } },
@@ -88,47 +64,46 @@ export default async function DashboardPage() {
           orderBy: { position: 'asc' },
         })
       : Promise.resolve([] as Array<{ id: string; name: string; position: number }>),
-    prisma.user.count({
-      where: { isActive: true, lastSeenAt: { gte: sinceWindow } },
-    }),
     prisma.user.findMany({
       where: { isActive: true, lastSeenAt: { gte: sinceWindow } },
       select: { id: true, displayName: true, email: true },
       orderBy: { lastSeenAt: 'desc' },
-      take: 4,
     }),
   ]);
 
-  const actorLookup: Record<string, { id: string; displayName: string | null; email: string | null }> = {};
-  for (const u of userRows) actorLookup[u.id] = u;
+  const onlineCount = onlineUsers.length;
+  const onlineSample = onlineUsers.slice(0, ONLINE_SAMPLE_SIZE);
 
-  // Pre-seed goalLookup with active-sprint ordering so the goal colour palette
-  // lines up with the ActiveSprintCard's bars; then append any extras.
-  // `goalProgress.goalId` may be null for the "unassigned" bucket — skip those
-  // because they have no row in `goalRows`.
+  const actors: DashboardLookups['actors'] = {};
+  for (const u of userRows) actors[u.id] = u;
+
+  // Seed goal order with active-sprint progress so goalColor(i) in
+  // ActiveSprintCard matches the tag dot color in MyTodosCard. Unassigned
+  // goalProgress (null goalId) has no row in goalRows and is skipped.
   const goalById = new Map(goalRows.map((g) => [g.id, g]));
   const activeSprintGoalIds = (data.activeSprint?.goalProgress ?? [])
     .map((g) => g.goalId)
     .filter((id): id is string => id !== null);
-  const goalLookup: Record<string, { id: string; name: string; index: number }> = {};
+  const goals: DashboardLookups['goals'] = {};
   activeSprintGoalIds.forEach((id, index) => {
     const g = goalById.get(id);
-    if (g) goalLookup[id] = { id, name: g.name, index };
+    if (g) goals[id] = { id, name: g.name, index };
   });
   let extraGoalIdx = activeSprintGoalIds.length;
   for (const g of goalRows) {
-    if (!goalLookup[g.id]) {
-      goalLookup[g.id] = { id: g.id, name: g.name, index: extraGoalIdx++ };
+    if (!goals[g.id]) {
+      goals[g.id] = { id: g.id, name: g.name, index: extraGoalIdx++ };
     }
   }
 
   const now = new Date();
   const tz = env.ORG_TIMEZONE;
   const greeting = greetingFor(now, tz);
-  const localStamp = formatLocal(now, tz);
+  const localStamp = formatLocalStamp(now, tz);
   const todayIso = todayIsoInZone(now, tz);
 
-  // Single source of truth for sprint-day math; passed down to ActiveSprintCard.
+  const lookups: DashboardLookups = { actors, goals, todayIso };
+
   const sprintDays = data.activeSprint
     ? sprintDayMath(
         data.activeSprint.sprint.startDate,
@@ -141,8 +116,6 @@ export default async function DashboardPage() {
   let paceFlavour = 'welcome back.';
   if (data.activeSprint && sprintDays) {
     const { totalDays, todayIndex } = sprintDays;
-    // sprintDayMath returns 0 before start and totalDays+1 after end; the
-    // 1..totalDays range is the in-window case.
     if (todayIndex === 0) {
       dayBadge = null;
     } else if (todayIndex > totalDays) {
@@ -168,7 +141,7 @@ export default async function DashboardPage() {
           <div className="dash-title">
             {greeting} — <span className="accent">{paceFlavour}</span>
           </div>
-          <div className="dash-sub" style={{ marginTop: 6 }}>
+          <div className="dash-sub dash-sub--spaced">
             <span>{localStamp}</span>
             {dayBadge && (
               <>
@@ -184,16 +157,15 @@ export default async function DashboardPage() {
           <span>
             {onlineCount} teammate{onlineCount === 1 ? '' : 's'} online
           </span>
-          <div style={{ display: 'flex' }}>
-            {onlineSample.map((u, i) => (
-              <span key={u.id} style={{ marginLeft: i === 0 ? 0 : -5 }}>
-                <DenseAvatar
-                  userId={u.id}
-                  displayName={u.displayName}
-                  email={u.email}
-                  size="sm"
-                />
-              </span>
+          <div className="avatar-stack">
+            {onlineSample.map((u) => (
+              <DenseAvatar
+                key={u.id}
+                userId={u.id}
+                displayName={u.displayName}
+                email={u.email}
+                size="sm"
+              />
             ))}
           </div>
         </div>
@@ -205,14 +177,9 @@ export default async function DashboardPage() {
           totalDays={sprintDays?.totalDays ?? 1}
           todayIndex={sprintDays?.todayIndex ?? 0}
         />
-        <MyTodosCard todos={data.myTodos} goalLookup={goalLookup} todayIso={todayIso} />
-        <UpcomingDeadlinesCard
-          todos={data.upcomingDeadlines}
-          assigneeLookup={actorLookup}
-          goalLookup={goalLookup}
-          todayIso={todayIso}
-        />
-        <TeamActivityCard events={data.activity} actorLookup={actorLookup} />
+        <MyTodosCard todos={data.myTodos} lookups={lookups} />
+        <UpcomingDeadlinesCard todos={data.upcomingDeadlines} lookups={lookups} />
+        <TeamActivityCard events={data.activity} lookups={lookups} />
       </div>
     </div>
   );

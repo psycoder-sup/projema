@@ -1,8 +1,3 @@
-/**
- * Dashboard loading skeleton — dense dark redesign (FR-20).
- * Mirrors the dense card layout while getDashboardData resolves.
- */
-
 function SkeletonLine({ width = '100%', height = 10 }: { width?: string | number; height?: number }) {
   return (
     <div

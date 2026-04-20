@@ -1,23 +1,14 @@
-/**
- * Active Sprint card — dense dark redesign.
- * Signature elements: 14-day timeline ticks, animated progress arc with
- * pace chip, animated per-goal bars.
- */
 import Link from 'next/link';
 import type { DashboardData } from '@/types/domain';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
-import { goalColor, shortMonth } from '@/components/layout/dense/utils';
+import { goalColor, parseIsoDate, shortMonth } from '@/components/layout/dense/utils';
 import { ProgressArc } from './dense/ProgressArc';
 import { GoalRow } from './dense/GoalRow';
 
+const UNASSIGNED_KEY = '__unassigned__';
+
 interface ActiveSprintCardProps {
   data: DashboardData['activeSprint'];
-  /**
-   * Sprint-day math computed once on the server (see `sprintDayMath` in
-   * `components/layout/dense/utils`). Passed in so the card doesn't
-   * recompute what the page already knows and so the timezone basis stays
-   * consistent with the rest of the dashboard.
-   */
   totalDays: number;
   todayIndex: number;
 }
@@ -41,14 +32,14 @@ function buildDays(
   startLabel: string;
   endLabel: string;
 } {
-  const start = new Date(startDate + 'T00:00:00Z');
-  const end = new Date(endDate + 'T00:00:00Z');
+  const start = parseIsoDate(startDate);
+  const end = parseIsoDate(endDate);
   const dayMs = 86_400_000;
 
   const cells: DayCell[] = [];
   for (let i = 0; i < totalDays; i++) {
     const cellDate = new Date(start.getTime() + i * dayMs);
-    const dow = cellDate.getUTCDay(); // 0=Sun..6=Sat
+    const dow = cellDate.getUTCDay();
     cells.push({
       dayNum: i + 1,
       cal: cellDate.getUTCDate(),
@@ -132,7 +123,7 @@ function EmptySprint() {
       <div className="empty-state">
         <span className="t">No active sprint</span>
         <span>Plan a sprint to start tracking goals.</span>
-        <Link href="/sprints/new" className="mini-link" style={{ marginTop: 8 }}>
+        <Link href="/sprints/new" className="mini-link mini-link--spaced-lg">
           + Create sprint
         </Link>
       </div>
@@ -147,12 +138,10 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
 
   const { sprint, goalProgress, overall } = data;
 
-  // `todayIndex` is 0 before sprint start, 1..totalDays during, totalDays+1 after end.
   const beforeStart = todayIndex === 0;
   const afterEnd = todayIndex > totalDays;
   const inWindow = !beforeStart && !afterEnd;
 
-  // Compute pct + pace
   const pct = overall.total === 0 ? 0 : (overall.done / overall.total) * 100;
   const elapsedDays = inWindow ? todayIndex : afterEnd ? totalDays : 0;
   const remaining = Math.max(0, totalDays - elapsedDays);
@@ -166,7 +155,7 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
         : `${Math.round(pace)}% behind pace`;
 
   const fmtDate = (iso: string) => {
-    const d = new Date(iso + 'T00:00:00Z');
+    const d = parseIsoDate(iso);
     return `${shortMonth(d.getUTCMonth())} ${d.getUTCDate()}`;
   };
 
@@ -245,19 +234,17 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
             <div className="goals-head">
               <span className="t">Goals</span>
               <span className="line" />
-              <span className="t" style={{ color: 'var(--fg-4)' }}>
-                {goalProgress.length} tracked
-              </span>
+              <span className="t t--dim">{goalProgress.length} tracked</span>
             </div>
             <div className="goals">
               {goalProgress.length === 0 ? (
-                <div className="empty-state" style={{ padding: '12px 0' }}>
+                <div className="empty-state empty-state--inline">
                   <span>No goals yet — add some to start tracking progress.</span>
                 </div>
               ) : (
                 goalProgress.map((gp, i) => (
                   <GoalRow
-                    key={gp.goalId ?? `__unassigned__${i}`}
+                    key={gp.goalId ?? `${UNASSIGNED_KEY}${i}`}
                     name={gp.name}
                     done={gp.done}
                     total={gp.total}

@@ -1,13 +1,7 @@
-/**
- * Authenticated app shell layout — dense dark redesign.
- * Renders: dense sidebar (logo + org + nav + sprints + me-card)
- *          + dense header (crumbs + search + actions)
- *          + main content slot.
- */
 import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
-import { prisma } from '@/server/db/client';
 import { loadDbUser } from '@/server/loaders/session-user';
+import { loadSidebarData } from '@/server/loaders/sidebar';
 import { PostHogPageView } from '@/components/layout/PostHogPageView';
 import { DenseSidebar } from '@/components/layout/dense/DenseSidebar';
 import { DenseHeader } from '@/components/layout/dense/DenseHeader';
@@ -22,23 +16,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const userId = session.user.id;
 
-  const [dbUser, sidebarSprintRows, myTodosCount, backlogCount, activeSprintCount] =
-    await Promise.all([
-      loadDbUser(userId),
-      prisma.sprint.findMany({
-        where: { status: { in: ['active', 'planned'] } },
-        select: { id: true, name: true, status: true },
-        orderBy: [{ status: 'asc' }, { startDate: 'asc' }],
-        take: 5,
-      }),
-      prisma.todo.count({
-        where: { assigneeUserId: userId, status: { not: 'done' } },
-      }),
-      prisma.todo.count({
-        where: { sprintId: null, status: { not: 'done' } },
-      }),
-      prisma.sprint.count({ where: { status: 'active' } }),
-    ]);
+  const [dbUser, sidebar] = await Promise.all([
+    loadDbUser(userId),
+    loadSidebarData(userId),
+  ]);
 
   if (!dbUser) {
     redirect('/sign-in');
@@ -63,16 +44,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}
           orgName={orgName}
           orgInitial={orgInitial}
-          sidebarSprints={sidebarSprintRows.map((s) => ({
-            id: s.id,
-            name: s.name,
-            status: s.status as 'planned' | 'active' | 'completed',
-          }))}
-          counts={{
-            myTodos: myTodosCount,
-            backlog: backlogCount,
-            activeSprints: activeSprintCount,
-          }}
+          sidebarSprints={sidebar.sprints}
+          counts={sidebar.counts}
         />
         <div className="main">
           <DenseHeader orgName={orgName} actor={dbUser} />

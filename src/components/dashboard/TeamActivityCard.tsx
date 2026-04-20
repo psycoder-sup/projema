@@ -1,21 +1,12 @@
-/**
- * Team Activity card — dense dark redesign.
- * Wire feed: avatar, "actor verb target", inline status transitions, time ago.
- */
 import type { ActivityEvent } from '@/types/domain';
+import type { DashboardLookups, ActorEntry } from '@/lib/dashboard/lookups';
 import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
-import { formatTimeAgo } from '@/components/layout/dense/utils';
-
-interface ActorEntry {
-  id: string;
-  displayName: string | null;
-  email: string | null;
-}
+import { formatTimeAgo, shortId } from '@/components/layout/dense/utils';
 
 interface TeamActivityCardProps {
   events: ActivityEvent[];
-  actorLookup: Record<string, ActorEntry>;
+  lookups: DashboardLookups;
 }
 
 interface ParsedEvent {
@@ -27,15 +18,18 @@ interface ParsedEvent {
   toUser: string | null;
 }
 
-function parseEvent(event: ActivityEvent, actorLookup: Record<string, ActorEntry>): ParsedEvent {
+function parseEvent(
+  event: ActivityEvent,
+  actors: Record<string, ActorEntry>,
+): ParsedEvent {
   const payload = (event.payload ?? {}) as Record<string, unknown>;
   const targetTitle = (payload['title'] as string | undefined) ?? null;
   const targetIdShort = event.targetTodoId
-    ? event.targetTodoId.slice(0, 6)
+    ? shortId(event.targetTodoId)
     : event.targetSprintId
-      ? event.targetSprintId.slice(0, 6)
+      ? shortId(event.targetSprintId)
       : '';
-  const targetText = targetTitle ?? `${targetIdShort || 'item'}`;
+  const targetText = targetTitle ?? (targetIdShort || 'item');
 
   const base: ParsedEvent = {
     verb: 'performed an action',
@@ -62,7 +56,7 @@ function parseEvent(event: ActivityEvent, actorLookup: Record<string, ActorEntry
     case 'todo_assigned': {
       const toId = payload['assigneeUserId'] as string | undefined;
       const toUser = toId
-        ? (actorLookup[toId]?.displayName ?? actorLookup[toId]?.email ?? null)
+        ? (actors[toId]?.displayName ?? actors[toId]?.email ?? null)
         : null;
       return { ...base, verb: 'assigned', toUser };
     }
@@ -79,9 +73,15 @@ function parseEvent(event: ActivityEvent, actorLookup: Record<string, ActorEntry
   }
 }
 
-function ActivityItem({ event, actorLookup }: { event: ActivityEvent; actorLookup: Record<string, ActorEntry> }) {
-  const actor = actorLookup[event.actorUserId];
-  const parsed = parseEvent(event, actorLookup);
+function ActivityItem({
+  event,
+  lookups,
+}: {
+  event: ActivityEvent;
+  lookups: DashboardLookups;
+}) {
+  const actor = lookups.actors[event.actorUserId];
+  const parsed = parseEvent(event, lookups.actors);
 
   return (
     <div className="act">
@@ -99,7 +99,7 @@ function ActivityItem({ event, actorLookup }: { event: ActivityEvent; actorLooku
         {parsed.asChip ? (
           <span className="chip">{parsed.target}</span>
         ) : (
-          <span style={{ color: 'var(--fg-1)' }}>{parsed.target}</span>
+          <span className="target">{parsed.target}</span>
         )}
         {parsed.from && parsed.to && (
           <>
@@ -119,7 +119,7 @@ function ActivityItem({ event, actorLookup }: { event: ActivityEvent; actorLooku
   );
 }
 
-export function TeamActivityCard({ events, actorLookup }: TeamActivityCardProps) {
+export function TeamActivityCard({ events, lookups }: TeamActivityCardProps) {
   const visible = events.slice(0, 9);
 
   return (
@@ -129,9 +129,7 @@ export function TeamActivityCard({ events, actorLookup }: TeamActivityCardProps)
           <span className="idx">04 /</span> Team activity
         </span>
         <div className="card-head-right">
-          <span className="mini-link" style={{ color: 'var(--fg-2)' }}>
-            last 15 events
-          </span>
+          <span className="mini-link mini-link--muted">last 15 events</span>
           <span className="mini-link">
             Feed <DenseIcon id="i-chev-r" />
           </span>
@@ -145,7 +143,7 @@ export function TeamActivityCard({ events, actorLookup }: TeamActivityCardProps)
           </div>
         ) : (
           visible.map((event) => (
-            <ActivityItem key={event.id} event={event} actorLookup={actorLookup} />
+            <ActivityItem key={event.id} event={event} lookups={lookups} />
           ))
         )}
       </div>

@@ -1,51 +1,30 @@
-/**
- * Upcoming Deadlines card — dense dark redesign.
- * Calendar date block + title + assignee/goal + due chip.
- */
 import Link from 'next/link';
 import type { Todo } from '@/types/domain';
-import { diffDaysIso, dueLabel, shortMonth } from '@/components/layout/dense/utils';
-
-interface AssigneeLookupEntry {
-  id: string;
-  displayName: string | null;
-  email: string | null;
-}
-
-interface GoalLookupEntry {
-  id: string;
-  name: string;
-  index: number;
-}
+import type { DashboardLookups } from '@/lib/dashboard/lookups';
+import {
+  diffDaysIso,
+  dueLabel,
+  parseIsoDate,
+  shortId,
+  shortMonth,
+} from '@/components/layout/dense/utils';
 
 interface UpcomingDeadlinesCardProps {
   todos: Todo[];
-  assigneeLookup: Record<string, AssigneeLookupEntry>;
-  goalLookup: Record<string, GoalLookupEntry>;
-  todayIso: string;
+  lookups: DashboardLookups;
 }
 
-function DeadlineRow({
-  todo,
-  assigneeLookup,
-  goalLookup,
-  todayIso,
-}: {
-  todo: Todo;
-  assigneeLookup: Record<string, AssigneeLookupEntry>;
-  goalLookup: Record<string, GoalLookupEntry>;
-  todayIso: string;
-}) {
+function DeadlineRow({ todo, lookups }: { todo: Todo; lookups: DashboardLookups }) {
   if (!todo.dueDate) return null;
 
-  const date = new Date(todo.dueDate + 'T00:00:00Z');
-  const diff = diffDaysIso(todo.dueDate, todayIso);
+  const date = parseIsoDate(todo.dueDate);
+  const diff = diffDaysIso(todo.dueDate, lookups.todayIso);
   const due = dueLabel(diff);
   const day = String(date.getUTCDate()).padStart(2, '0');
   const month = shortMonth(date.getUTCMonth());
 
-  const assignee = todo.assigneeUserId ? assigneeLookup[todo.assigneeUserId] : undefined;
-  const goal = todo.sprintGoalId ? goalLookup[todo.sprintGoalId] : undefined;
+  const assignee = todo.assigneeUserId ? lookups.actors[todo.assigneeUserId] : undefined;
+  const goal = todo.sprintGoalId ? lookups.goals[todo.sprintGoalId] : undefined;
 
   return (
     <Link href={`/todos/${todo.id}`} className={`deadline ${due.cls}`} aria-label={todo.title}>
@@ -56,7 +35,7 @@ function DeadlineRow({
       <div className="deadline-body">
         <div className="t">{todo.title}</div>
         <div className="s">
-          <span>{todo.id.slice(0, 6)}</span>
+          <span>{shortId(todo.id)}</span>
           {assignee && (
             <>
               <span className="sep">·</span>
@@ -64,7 +43,7 @@ function DeadlineRow({
             </>
           )}
           <span className="sep">·</span>
-          <span style={{ color: goal ? 'var(--fg-2)' : 'var(--fg-3)' }}>
+          <span className={goal ? 'deadline-goal' : 'deadline-goal--empty'}>
             {goal?.name ?? 'Backlog'}
           </span>
         </div>
@@ -74,7 +53,7 @@ function DeadlineRow({
   );
 }
 
-export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup, todayIso }: UpcomingDeadlinesCardProps) {
+export function UpcomingDeadlinesCard({ todos, lookups }: UpcomingDeadlinesCardProps) {
   const visible = todos.slice(0, 5);
 
   return (
@@ -84,9 +63,7 @@ export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup, today
           <span className="idx">03 /</span> Upcoming deadlines
         </span>
         <div className="card-head-right">
-          <span className="mini-link" style={{ color: 'var(--fg-2)' }}>
-            next 7 days
-          </span>
+          <span className="mini-link mini-link--muted">next 7 days</span>
         </div>
       </div>
       <div className="deadlines">
@@ -96,15 +73,7 @@ export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup, today
             <span>No todos due in the next 7 days.</span>
           </div>
         ) : (
-          visible.map((t) => (
-            <DeadlineRow
-              key={t.id}
-              todo={t}
-              assigneeLookup={assigneeLookup}
-              goalLookup={goalLookup}
-              todayIso={todayIso}
-            />
-          ))
+          visible.map((t) => <DeadlineRow key={t.id} todo={t} lookups={lookups} />)
         )}
       </div>
     </div>

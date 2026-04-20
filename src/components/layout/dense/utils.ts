@@ -1,9 +1,3 @@
-/**
- * Tiny shared helpers for the dense dashboard:
- *   - color/initials derivation for avatars (no avatar URLs in the design)
- *   - goal accent palette
- */
-
 const AVATAR_PALETTE_BUCKETS = 5;
 
 export function avatarBucket(seed: string | null | undefined): number {
@@ -15,7 +9,10 @@ export function avatarBucket(seed: string | null | undefined): number {
   return (Math.abs(h) % AVATAR_PALETTE_BUCKETS) + 1;
 }
 
-export function initialsFor(displayName: string | null | undefined, email: string | null | undefined): string {
+export function initialsFor(
+  displayName: string | null | undefined,
+  email: string | null | undefined,
+): string {
   const source = (displayName ?? email ?? '').trim();
   if (!source) return '?';
   const parts = source.split(/\s+/).filter(Boolean);
@@ -27,32 +24,34 @@ export function initialsFor(displayName: string | null | undefined, email: strin
 }
 
 const GOAL_PALETTE: string[] = [
-  'oklch(74% 0.16 145)', // signal green
-  'oklch(72% 0.17 25)', // red-orange
-  'oklch(72% 0.16 300)', // violet
-  'oklch(78% 0.12 240)', // info blue
-  'oklch(80% 0.15 75)', // amber
-  'oklch(78% 0.12 200)', // cyan
+  'oklch(74% 0.16 145)',
+  'oklch(72% 0.17 25)',
+  'oklch(72% 0.16 300)',
+  'oklch(78% 0.12 240)',
+  'oklch(80% 0.15 75)',
+  'oklch(78% 0.12 200)',
 ];
 
 export function goalColor(index: number): string {
   return GOAL_PALETTE[index % GOAL_PALETTE.length] ?? 'oklch(74% 0.16 145)';
 }
 
-/**
- * Day delta between two calendar days expressed as YYYY-MM-DD strings.
- * Parses both as UTC midnight so the result is independent of the render
- * process's local timezone — matches `sprintDayMath`'s convention so
- * deadline labels line up with the org's wall-clock calendar.
- */
+// Parse a YYYY-MM-DD calendar day as UTC midnight so comparisons are
+// independent of the render process's local timezone.
+export function parseIsoDate(iso: string): Date {
+  return new Date(iso + 'T00:00:00Z');
+}
+
 export function diffDaysIso(targetIso: string, todayIso: string): number {
   const dayMs = 86_400_000;
   return Math.round(
-    (Date.parse(targetIso + 'T00:00:00Z') - Date.parse(todayIso + 'T00:00:00Z')) / dayMs,
+    (parseIsoDate(targetIso).getTime() - parseIsoDate(todayIso).getTime()) / dayMs,
   );
 }
 
-export function dueLabel(diff: number | null): { text: string; cls: '' | 'soon' | 'overdue' } {
+export function dueLabel(
+  diff: number | null,
+): { text: string; cls: '' | 'soon' | 'overdue' } {
   if (diff === null) return { text: '—', cls: '' };
   if (diff < 0) return { text: `${Math.abs(diff)}d overdue`, cls: 'overdue' };
   if (diff === 0) return { text: 'today', cls: 'soon' };
@@ -61,16 +60,29 @@ export function dueLabel(diff: number | null): { text: string; cls: '' | 'soon' 
   return { text: `in ${diff}d`, cls: '' };
 }
 
-const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 export function shortMonth(monthIdx: number): string {
   return SHORT_MONTHS[monthIdx] ?? '';
 }
 
-/**
- * "time ago" formatter. `long: true` returns "just now"/"m ago"/"h ago"/"d ago"
- * (for dropdown-menu rows); default returns the compact form "now"/"m"/"h"/"d"
- * (for the wire-feed timestamp column).
- */
+export function shortId(id: string): string {
+  return id.slice(0, 6);
+}
+
+// `long: true` → "just now"/"m ago"/…; default → "now"/"m"/….
 export function formatTimeAgo(date: Date, opts: { long?: boolean } = {}): string {
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
   const long = opts.long ?? false;
@@ -80,14 +92,10 @@ export function formatTimeAgo(date: Date, opts: { long?: boolean } = {}): string
   return `${Math.floor(diff / 86_400)}${long ? 'd ago' : 'd'}`;
 }
 
-/**
- * Returns "today" as a YYYY-MM-DD string in the given IANA time zone. Use
- * this when comparing against calendar-day-valued columns (Sprint.startDate
- * / endDate) so 02:00 Tokyo and 22:00 LA resolve to the correct wall-clock
- * calendar day, not whatever UTC happens to be.
- */
+// Formats `now` as YYYY-MM-DD in the given IANA zone, so calendar-day
+// comparisons against Sprint.startDate/endDate resolve to the org's
+// wall-clock day regardless of the server's UTC offset.
 export function todayIsoInZone(now: Date, timeZone: string): string {
-  // en-CA always formats as YYYY-MM-DD.
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -97,24 +105,45 @@ export function todayIsoInZone(now: Date, timeZone: string): string {
   return fmt.format(now);
 }
 
-/**
- * Day-count math for sprint timelines. All three arguments must be calendar
- * days expressed as YYYY-MM-DD strings — typically sprint.startDate,
- * sprint.endDate, and `todayIsoInZone(now, env.ORG_TIMEZONE)`.
- * Returns inclusive `totalDays` plus `todayIndex` (1-based; 0 = before sprint,
- * totalDays + 1 = after).
- */
+// Inclusive `totalDays` + 1-based `todayIndex` (0 before start,
+// totalDays+1 after end). All three args are YYYY-MM-DD calendar days.
 export function sprintDayMath(
   startIso: string,
   endIso: string,
   todayIso: string,
 ): { totalDays: number; todayIndex: number } {
   const dayMs = 86_400_000;
-  const startMs = Date.parse(startIso + 'T00:00:00Z');
-  const endMs = Date.parse(endIso + 'T00:00:00Z');
-  const todayMs = Date.parse(todayIso + 'T00:00:00Z');
+  const startMs = parseIsoDate(startIso).getTime();
+  const endMs = parseIsoDate(endIso).getTime();
+  const todayMs = parseIsoDate(todayIso).getTime();
   const totalDays = Math.max(1, Math.round((endMs - startMs) / dayMs) + 1);
-  const diff = Math.round((todayMs - startMs) / dayMs); // 0-based
+  const diff = Math.round((todayMs - startMs) / dayMs);
   const todayIndex = diff < 0 ? 0 : diff >= totalDays ? totalDays + 1 : diff + 1;
   return { totalDays, todayIndex };
+}
+
+export function greetingFor(date: Date, timeZone: string): string {
+  const hour = Number(
+    date.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone }),
+  );
+  if (hour < 5) return 'Late night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+export function formatLocalStamp(date: Date, timeZone: string): string {
+  const dayPart = date.toLocaleString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone,
+  });
+  const timePart = date.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone,
+  });
+  return `${dayPart} · ${timePart} local`;
 }

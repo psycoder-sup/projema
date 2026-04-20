@@ -1,8 +1,19 @@
-/**
- * Inline SVG sprite for the dense dashboard. Mounted once at the top of the
- * authenticated shell so every <DenseIcon id="..."/> can `<use href="#..."/>`
- * into it. Lifted verbatim from the design's source HTML.
- */
+export type DenseIconId =
+  | 'i-search'
+  | 'i-bell'
+  | 'i-plus'
+  | 'i-chev'
+  | 'i-chev-r'
+  | 'i-dash'
+  | 'i-sprint'
+  | 'i-check-sq'
+  | 'i-inbox'
+  | 'i-team'
+  | 'i-x'
+  | 'i-tune'
+  | 'i-cmd'
+  | 'i-log';
+
 export function IconSprite() {
   return (
     <svg
@@ -130,7 +141,7 @@ export function IconSprite() {
 }
 
 interface DenseIconProps {
-  id: string;
+  id: DenseIconId;
   size?: number;
   className?: string;
 }

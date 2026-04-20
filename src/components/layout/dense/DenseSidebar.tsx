@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { bestNavMatch } from '@/components/layout/nav-active';
 import type { Sprint } from '@/types/domain';
-import { DenseIcon } from './IconSprite';
+import { DenseIcon, type DenseIconId } from './IconSprite';
 import { DenseAccountMenu } from './DenseAccountMenu';
 
 interface SidebarProps {
@@ -29,7 +29,7 @@ interface NavSpec {
   id: string;
   label: string;
   href: string;
-  icon: string;
+  icon: DenseIconId;
   count: number | null;
 }
 
@@ -45,8 +45,6 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
   if (user.role === 'admin') {
     items.push({ id: 'team', label: 'Team', href: '/admin/members', icon: 'i-team', count: null });
   }
-  // Longest-prefix match so detail routes like `/todos/<id>` highlight
-  // "Backlog" without also lighting up "My todos" on `/todos/mine`.
   const bestHref = bestNavMatch(
     pathname,
     items.map((it) => it.href),
