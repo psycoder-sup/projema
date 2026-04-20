@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const userId = session.user.id;
 
-  const [dbUser, sidebarSprintRows, myTodosCount, backlogCount, activeSprintCount, unreadCount] =
+  const [dbUser, sidebarSprintRows, myTodosCount, backlogCount, activeSprintCount] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -40,7 +40,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         where: { sprintId: null, status: { not: 'done' } },
       }),
       prisma.sprint.count({ where: { status: 'active' } }),
-      prisma.notification.count({ where: { userId, readAt: null } }),
     ]);
 
   if (!dbUser) {
@@ -78,7 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}
         />
         <div className="main">
-          <DenseHeader orgName={orgName} hasUnreadNotifications={unreadCount > 0} />
+          <DenseHeader orgName={orgName} />
           <PostHogPageView />
           <main id="main-content">{children}</main>
         </div>

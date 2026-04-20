@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { isNavLinkActive } from '@/components/layout/nav-active';
 import type { Sprint } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
-import { DenseAvatar } from './DenseAvatar';
+import { DenseAccountMenu } from './DenseAccountMenu';
 
 interface SidebarProps {
   user: {
@@ -130,20 +130,7 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
       )}
 
       <div className="sidebar-bottom">
-        <div className="me-card">
-          <DenseAvatar
-            userId={user.id}
-            displayName={user.displayName}
-            email={user.email}
-            size="md"
-          />
-          <div style={{ minWidth: 0 }}>
-            <div className="me-name">{user.displayName ?? user.email ?? 'You'}</div>
-            <div className="me-sub">
-              {user.role} · {orgName}
-            </div>
-          </div>
-        </div>
+        <DenseAccountMenu user={user} orgName={orgName} />
       </div>
     </aside>
   );

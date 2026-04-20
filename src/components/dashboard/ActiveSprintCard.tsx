@@ -6,12 +6,18 @@
 import Link from 'next/link';
 import type { DashboardData } from '@/types/domain';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
-import { goalColor, shortMonth } from '@/components/layout/dense/utils';
+import { goalColor, shortMonth, sprintDayMath } from '@/components/layout/dense/utils';
 import { ProgressArc } from './dense/ProgressArc';
 import { GoalRow } from './dense/GoalRow';
 
 interface ActiveSprintCardProps {
   data: DashboardData['activeSprint'];
+  /**
+   * Today as a YYYY-MM-DD string in the org's configured timezone. Passed
+   * in from the server so sprint-day math lines up with what the user sees
+   * on the clock (vs. whatever UTC happens to be).
+   */
+  todayIso: string;
 }
 
 interface DayCell {
@@ -23,21 +29,17 @@ interface DayCell {
   today: boolean;
 }
 
-function buildDays(startDate: string, endDate: string, today: Date): {
+function buildDays(startDate: string, endDate: string, todayIso: string): {
   cells: DayCell[];
   totalDays: number;
   todayIndex: number; // 1-based; 0 if before sprint, totalDays+1 if after
   startLabel: string;
   endLabel: string;
 } {
+  const { totalDays, todayIndex } = sprintDayMath(startDate, endDate, todayIso);
   const start = new Date(startDate + 'T00:00:00Z');
   const end = new Date(endDate + 'T00:00:00Z');
   const dayMs = 86_400_000;
-  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs) + 1);
-
-  const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  const todayDiff = Math.round((todayUTC - start.getTime()) / dayMs); // 0-based
-  const todayIndex = todayDiff < 0 ? 0 : todayDiff >= totalDays ? totalDays + 1 : todayDiff + 1;
 
   const cells: DayCell[] = [];
   for (let i = 0; i < totalDays; i++) {
@@ -68,8 +70,8 @@ function buildDays(startDate: string, endDate: string, today: Date): {
   };
 }
 
-function SprintTimeline({ startDate, endDate, today }: { startDate: string; endDate: string; today: Date }) {
-  const { cells, totalDays, todayIndex, startLabel, endLabel } = buildDays(startDate, endDate, today);
+function SprintTimeline({ startDate, endDate, todayIso }: { startDate: string; endDate: string; todayIso: string }) {
+  const { cells, totalDays, todayIndex, startLabel, endLabel } = buildDays(startDate, endDate, todayIso);
   const todayLabel =
     todayIndex === 0
       ? 'before start'
@@ -126,25 +128,17 @@ function EmptySprint() {
   );
 }
 
-export function ActiveSprintCard({ data }: ActiveSprintCardProps) {
+export function ActiveSprintCard({ data, todayIso }: ActiveSprintCardProps) {
   if (data === null) {
     return <EmptySprint />;
   }
 
   const { sprint, goalProgress, overall } = data;
-  const today = new Date();
 
   // Compute pct + pace
   const pct = overall.total === 0 ? 0 : (overall.done / overall.total) * 100;
-  const dayMs = 86_400_000;
-  const startMs = new Date(sprint.startDate + 'T00:00:00Z').getTime();
-  const endMs = new Date(sprint.endDate + 'T00:00:00Z').getTime();
-  const totalDays = Math.max(1, Math.round((endMs - startMs) / dayMs) + 1);
-  const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  const elapsedDays = Math.min(
-    totalDays,
-    Math.max(0, Math.round((todayUTC - startMs) / dayMs) + 1),
-  );
+  const { totalDays, todayIndex } = sprintDayMath(sprint.startDate, sprint.endDate, todayIso);
+  const elapsedDays = Math.min(totalDays, Math.max(0, todayIndex));
   const remaining = Math.max(0, totalDays - elapsedDays);
   const timePct = (elapsedDays / totalDays) * 100;
   const pace = pct - timePct;
@@ -216,7 +210,7 @@ export function ActiveSprintCard({ data }: ActiveSprintCardProps) {
 
         <div className="sprint-main">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-            <SprintTimeline startDate={sprint.startDate} endDate={sprint.endDate} today={today} />
+            <SprintTimeline startDate={sprint.startDate} endDate={sprint.endDate} todayIso={todayIso} />
             <div className="goals-head">
               <span className="t">Goals</span>
               <span className="line" />

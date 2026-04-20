@@ -16,12 +16,15 @@ export function DenseAvatar({
   bucket,
 }: DenseAvatarProps) {
   const c = bucket ?? avatarBucket(userId ?? displayName ?? email ?? null);
+  const label = displayName ?? email ?? null;
   return (
     <div
       className={`avatar ${size}`}
       data-c={c}
-      title={displayName ?? email ?? undefined}
-      aria-hidden={!displayName}
+      role="img"
+      aria-label={label ?? 'Unknown user'}
+      aria-hidden={label === null ? true : undefined}
+      title={label ?? undefined}
     >
       {initialsFor(displayName, email)}
     </div>

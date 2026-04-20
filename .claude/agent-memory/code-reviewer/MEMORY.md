@@ -1,0 +1,1 @@
+- [FR-04 sign-out requirement](project_fr04_signout.md) — PRD mandates sign-out on every authenticated screen; e2e test in tests/e2e/auth-signout.spec.ts enforces it.

@@ -20,18 +20,3 @@ export function toIsoDate(d: Date | null): string | null {
 export function isSameDay(a: string, b: string): boolean {
   return a.substring(0, 10) === b.substring(0, 10);
 }
-
-/**
- * Long-form date string for the dashboard masthead, rendered in the org's
- * configured timezone (env.ORG_TIMEZONE). Keeps server-rendered dates correct
- * for users whose local timezone differs from the container's (usually UTC).
- */
-export function formatMastheadDate(now: Date, timeZone: string): string {
-  return now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone,
-  });
-}

@@ -13,6 +13,7 @@ import { MyTodosCard } from '@/components/dashboard/MyTodosCard';
 import { UpcomingDeadlinesCard } from '@/components/dashboard/UpcomingDeadlinesCard';
 import { TeamActivityCard } from '@/components/dashboard/TeamActivityCard';
 import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
+import { sprintDayMath, todayIsoInZone } from '@/components/layout/dense/utils';
 import { env } from '@/lib/env';
 import type { User } from '@/types/domain';
 
@@ -131,19 +132,21 @@ export default async function DashboardPage() {
   const tz = env.ORG_TIMEZONE;
   const greeting = greetingFor(now, tz);
   const localStamp = formatLocal(now, tz);
+  const todayIso = todayIsoInZone(now, tz);
 
   let dayBadge: string | null = null;
   let paceFlavour = 'welcome back.';
   if (data.activeSprint) {
-    const start = new Date(data.activeSprint.sprint.startDate + 'T00:00:00Z');
-    const end = new Date(data.activeSprint.sprint.endDate + 'T00:00:00Z');
-    const dayMs = 86_400_000;
-    const total = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs) + 1);
-    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const elapsed = Math.min(total, Math.max(1, Math.round((todayUTC - start.getTime()) / dayMs) + 1));
-    dayBadge = `Day ${elapsed} of ${total}`;
+    const { totalDays, todayIndex } = sprintDayMath(
+      data.activeSprint.sprint.startDate,
+      data.activeSprint.sprint.endDate,
+      todayIso,
+    );
+    // Clamp to [1, totalDays] so the badge stays inside the sprint window.
+    const elapsed = Math.min(totalDays, Math.max(1, todayIndex));
+    dayBadge = `Day ${elapsed} of ${totalDays}`;
     if (data.activeSprint.overall.total > 0) {
-      const timePct = (elapsed / total) * 100;
+      const timePct = (elapsed / totalDays) * 100;
       const donePct = (data.activeSprint.overall.done / data.activeSprint.overall.total) * 100;
       const pace = donePct - timePct;
       if (pace > 5) paceFlavour = "you're ahead.";
@@ -191,7 +194,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid">
-        <ActiveSprintCard data={data.activeSprint} />
+        <ActiveSprintCard data={data.activeSprint} todayIso={todayIso} />
         <MyTodosCard todos={data.myTodos} goalLookup={goalLookup} />
         <UpcomingDeadlinesCard
           todos={data.upcomingDeadlines}

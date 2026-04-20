@@ -12,8 +12,8 @@ function readSrc(relativePath: string): string {
 
 describe('Accessibility audit — static source checks', () => {
   // Bell menu: icon-only button must have aria-label
-  test('BellMenu — Bell button has aria-label', () => {
-    const src = readSrc('src/components/layout/BellMenu.tsx');
+  test('DenseBellMenu — Bell button has aria-label', () => {
+    const src = readSrc('src/components/layout/dense/DenseBellMenu.tsx');
     expect(src).toMatch(/aria-label/);
   });
 
@@ -60,5 +60,18 @@ describe('Accessibility audit — static source checks', () => {
   test('AppLayout — main element has id for skip-link target', () => {
     const src = readSrc('src/app/(app)/layout.tsx');
     expect(src).toMatch(/id="main-content"/);
+  });
+
+  // FR-04: account menu must expose a Sign out action on every authed route.
+  test('DenseAccountMenu — exposes Account menu trigger + Sign out item', () => {
+    const src = readSrc('src/components/layout/dense/DenseAccountMenu.tsx');
+    expect(src).toMatch(/aria-label="Account menu"/);
+    expect(src).toMatch(/Sign out/);
+    expect(src).toMatch(/signOut\s*\(/);
+  });
+
+  test('DenseSidebar — renders the DenseAccountMenu', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
+    expect(src).toMatch(/DenseAccountMenu/);
   });
 });
