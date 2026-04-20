@@ -147,9 +147,14 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
 
   const { sprint, goalProgress, overall } = data;
 
+  // `todayIndex` is 0 before sprint start, 1..totalDays during, totalDays+1 after end.
+  const beforeStart = todayIndex === 0;
+  const afterEnd = todayIndex > totalDays;
+  const inWindow = !beforeStart && !afterEnd;
+
   // Compute pct + pace
   const pct = overall.total === 0 ? 0 : (overall.done / overall.total) * 100;
-  const elapsedDays = Math.min(totalDays, Math.max(0, todayIndex));
+  const elapsedDays = inWindow ? todayIndex : afterEnd ? totalDays : 0;
   const remaining = Math.max(0, totalDays - elapsedDays);
   const timePct = (elapsedDays / totalDays) * 100;
   const pace = pct - timePct;
@@ -191,7 +196,11 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
               <span>{fmtDate(sprint.startDate)} → {fmtDate(sprint.endDate)}</span>
               <span className="dot-sep" />
               <span>
-                {remaining === 0 ? 'final day' : `${remaining} day${remaining === 1 ? '' : 's'} remaining`}
+                {afterEnd
+                  ? 'ended'
+                  : remaining === 0
+                    ? 'final day'
+                    : `${remaining} day${remaining === 1 ? '' : 's'} remaining`}
               </span>
               <span className="dot-sep" />
               <span className="live-dot">live</span>
@@ -211,8 +220,14 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
             </div>
             <div className="num-block">
               <div className="n">
-                {Math.min(elapsedDays, totalDays)}
-                <span className="tot">/{totalDays}</span>
+                {beforeStart ? (
+                  <>—</>
+                ) : (
+                  <>
+                    {elapsedDays}
+                    <span className="tot">/{totalDays}</span>
+                  </>
+                )}
               </div>
               <div className="l">Day</div>
             </div>
@@ -254,7 +269,7 @@ export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCa
           </div>
           <div className="sprint-main-arc">
             <ProgressArc pct={pct} />
-            {overall.total > 0 && (
+            {overall.total > 0 && inWindow && (
               <div className={`arc-pace ${pace < 0 ? 'behind' : ''}`}>{paceLabel}</div>
             )}
           </div>

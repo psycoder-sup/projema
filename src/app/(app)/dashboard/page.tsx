@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
 import { prisma } from '@/server/db/client';
 import { getDashboardData } from '@/server/db/dashboard';
+import { loadDbUser } from '@/server/loaders/session-user';
 import { ActiveSprintCard } from '@/components/dashboard/ActiveSprintCard';
 import { MyTodosCard } from '@/components/dashboard/MyTodosCard';
 import { UpcomingDeadlinesCard } from '@/components/dashboard/UpcomingDeadlinesCard';
@@ -15,7 +16,6 @@ import { TeamActivityCard } from '@/components/dashboard/TeamActivityCard';
 import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
 import { sprintDayMath, todayIsoInZone } from '@/components/layout/dense/utils';
 import { env } from '@/lib/env';
-import type { User } from '@/types/domain';
 
 function greetingFor(date: Date, timeZone: string): string {
   const hour = Number(
@@ -49,22 +49,10 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!dbUser) {
+  const actor = await loadDbUser(session.user.id);
+  if (!actor) {
     redirect('/sign-in');
   }
-
-  const actor: User = {
-    id: dbUser.id,
-    email: dbUser.email ?? '',
-    displayName: dbUser.displayName,
-    avatarUrl: dbUser.avatarUrl,
-    role: dbUser.role as 'admin' | 'member',
-    isActive: dbUser.isActive,
-    lastSeenAt: dbUser.lastSeenAt,
-    createdAt: dbUser.createdAt,
-    updatedAt: dbUser.updatedAt,
-  };
 
   const data = await getDashboardData({ actor });
 
@@ -118,12 +106,13 @@ export default async function DashboardPage() {
   // lines up with the ActiveSprintCard's bars; then append any extras.
   // `goalProgress.goalId` may be null for the "unassigned" bucket — skip those
   // because they have no row in `goalRows`.
+  const goalById = new Map(goalRows.map((g) => [g.id, g]));
   const activeSprintGoalIds = (data.activeSprint?.goalProgress ?? [])
     .map((g) => g.goalId)
     .filter((id): id is string => id !== null);
   const goalLookup: Record<string, { id: string; name: string; index: number }> = {};
   activeSprintGoalIds.forEach((id, index) => {
-    const g = goalRows.find((r) => r.id === id);
+    const g = goalById.get(id);
     if (g) goalLookup[id] = { id, name: g.name, index };
   });
   let extraGoalIdx = activeSprintGoalIds.length;
@@ -152,16 +141,23 @@ export default async function DashboardPage() {
   let paceFlavour = 'welcome back.';
   if (data.activeSprint && sprintDays) {
     const { totalDays, todayIndex } = sprintDays;
-    // Clamp to [1, totalDays] so the badge stays inside the sprint window.
-    const elapsed = Math.min(totalDays, Math.max(1, todayIndex));
-    dayBadge = `Day ${elapsed} of ${totalDays}`;
-    if (data.activeSprint.overall.total > 0) {
-      const timePct = (elapsed / totalDays) * 100;
-      const donePct = (data.activeSprint.overall.done / data.activeSprint.overall.total) * 100;
-      const pace = donePct - timePct;
-      if (pace > 5) paceFlavour = "you're ahead.";
-      else if (pace < -5) paceFlavour = 'time to push.';
-      else paceFlavour = "you're on pace.";
+    // sprintDayMath returns 0 before start and totalDays+1 after end; the
+    // 1..totalDays range is the in-window case.
+    if (todayIndex === 0) {
+      dayBadge = null;
+    } else if (todayIndex > totalDays) {
+      dayBadge = 'Sprint ended';
+    } else {
+      dayBadge = `Day ${todayIndex} of ${totalDays}`;
+      if (data.activeSprint.overall.total > 0) {
+        const timePct = (todayIndex / totalDays) * 100;
+        const donePct =
+          (data.activeSprint.overall.done / data.activeSprint.overall.total) * 100;
+        const pace = donePct - timePct;
+        if (pace > 5) paceFlavour = "you're ahead.";
+        else if (pace < -5) paceFlavour = 'time to push.';
+        else paceFlavour = "you're on pace.";
+      }
     }
   }
 

@@ -7,6 +7,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
 import { prisma } from '@/server/db/client';
+import { loadDbUser } from '@/server/loaders/session-user';
 import { PostHogPageView } from '@/components/layout/PostHogPageView';
 import { DenseSidebar } from '@/components/layout/dense/DenseSidebar';
 import { DenseHeader } from '@/components/layout/dense/DenseHeader';
@@ -23,10 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [dbUser, sidebarSprintRows, myTodosCount, backlogCount, activeSprintCount] =
     await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, displayName: true, email: true, role: true },
-      }),
+      loadDbUser(userId),
       prisma.sprint.findMany({
         where: { status: { in: ['active', 'planned'] } },
         select: { id: true, name: true, status: true },
@@ -61,7 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             id: dbUser.id,
             displayName: dbUser.displayName,
             email: dbUser.email,
-            role: dbUser.role as 'admin' | 'member',
+            role: dbUser.role,
           }}
           orgName={orgName}
           orgInitial={orgInitial}
@@ -77,7 +75,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}
         />
         <div className="main">
-          <DenseHeader orgName={orgName} />
+          <DenseHeader orgName={orgName} actor={dbUser} />
           <PostHogPageView />
           <main id="main-content">{children}</main>
         </div>

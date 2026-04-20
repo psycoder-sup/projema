@@ -3,11 +3,13 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import type { User } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
 import { DenseBellMenu } from './DenseBellMenu';
 
 interface DenseHeaderProps {
   orgName: string;
+  actor: User;
 }
 
 const CRUMB_LABELS: Record<string, string> = {
@@ -21,8 +23,10 @@ const CRUMB_LABELS: Record<string, string> = {
   new: 'New',
 };
 
-// Matches: cuid (c + 24 chars), cuid2, uuid, or numeric-only ids.
-const DYNAMIC_ID_RE = /^(c[a-z0-9]{24,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+|[a-z0-9]{24,})$/i;
+// Matches: cuid / cuid2 (`c` + 24+ alphanumerics), uuid v4, or numeric-only ids.
+// Deliberately excludes a generic long-alphanumeric branch because it would
+// swallow human slugs like `retrospective-playbook-2026-q2`.
+const DYNAMIC_ID_RE = /^(c[a-z0-9]{24,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)$/i;
 
 function looksLikeId(seg: string): boolean {
   return DYNAMIC_ID_RE.test(seg);
@@ -50,7 +54,7 @@ function deriveCrumbs(pathname: string): string[] {
   return out;
 }
 
-export function DenseHeader({ orgName }: DenseHeaderProps) {
+export function DenseHeader({ orgName, actor }: DenseHeaderProps) {
   const pathname = usePathname() ?? '/dashboard';
   const router = useRouter();
   const crumbs = deriveCrumbs(pathname);
@@ -113,7 +117,7 @@ export function DenseHeader({ orgName }: DenseHeaderProps) {
         ))}
       </nav>
       <div className="h-spacer" />
-      <DenseBellMenu />
+      <DenseBellMenu actor={actor} />
       <Link href="/todos/new" className="new-todo">
         <DenseIcon id="i-plus" />
         <span>New todo</span>

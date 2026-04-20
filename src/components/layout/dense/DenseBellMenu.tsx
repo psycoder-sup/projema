@@ -12,7 +12,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/server/actions/notifications';
-import type { Notification, NotificationKind } from '@/types/domain';
+import type { Notification, NotificationKind, User } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
 import { formatTimeAgo } from './utils';
 
@@ -45,7 +45,11 @@ function NotificationRow({ notification, onRead }: RowProps) {
   );
 }
 
-export function DenseBellMenu() {
+interface DenseBellMenuProps {
+  actor: User;
+}
+
+export function DenseBellMenu({ actor }: DenseBellMenuProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const state = useNotifications();
@@ -54,7 +58,7 @@ export function DenseBellMenu() {
   const items = state.kind === 'ready' ? state.items : [];
 
   async function handleReadAndNavigate(id: string, targetTodoId: string) {
-    await markNotificationRead({ id }, { actor: { id: '' } as never });
+    await markNotificationRead({ id }, { actor });
     await queryClient.invalidateQueries({ queryKey: ['notifications'] });
     router.push(`/todos/${targetTodoId}`);
   }
@@ -69,7 +73,7 @@ export function DenseBellMenu() {
     );
     await markAllNotificationsRead(
       { upToCreatedAt: newest.toISOString() },
-      { actor: { id: '' } as never },
+      { actor },
     );
     await queryClient.invalidateQueries({ queryKey: ['notifications'] });
   }

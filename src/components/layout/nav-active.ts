@@ -1,9 +1,3 @@
-export function isNavLinkActive(pathname: string, href: string, exact = false): boolean {
-  if (pathname === href) return true;
-  if (exact) return false;
-  return pathname.startsWith(`${href}/`);
-}
-
 /**
  * Picks the single best (longest) matching href from a list of nav candidates.
  * Resolves ambiguities between an "exact" item and its nested siblings — e.g.
