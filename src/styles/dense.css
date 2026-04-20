@@ -1,0 +1,1583 @@
+/* ============================================================
+   PROJEMA — DENSE DARK DASHBOARD SYSTEM
+   Cool graphite, signal-green accent. Linear-inspired density.
+   Scoped under .dense-app to avoid collisions with the
+   existing brutalist theme.
+   ============================================================ */
+
+.dense-app {
+  /* Base palette — cool graphite, subtle blue cast */
+  --bg-0: #08090c;
+  --bg-1: #0c0e13;
+  --bg-2: #12151c;
+  --bg-3: #181c25;
+  --bg-4: #1f2430;
+  --bg-5: #272d3b;
+  --line-1: #1a1e28;
+  --line-2: #242a37;
+  --line-3: #323a4b;
+
+  --fg-0: #f2f3f6;
+  --fg-1: #d7dae1;
+  --fg-2: #9ba0ad;
+  --fg-3: #6b6f7c;
+  --fg-4: #474b56;
+
+  --accent: oklch(74% 0.16 145);
+  --accent-dim: oklch(74% 0.16 145 / 0.15);
+  --accent-line: oklch(74% 0.16 145 / 0.35);
+  --warn: oklch(80% 0.15 75);
+  --danger: oklch(72% 0.17 25);
+  --info: oklch(78% 0.12 240);
+  --violet: oklch(72% 0.16 300);
+
+  --priority-high: var(--danger);
+  --priority-med: var(--warn);
+  --priority-low: var(--info);
+
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+
+  --font-dense-sans: var(--font-geist-sans), 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-dense-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-dense-serif: var(--font-serif), 'Instrument Serif', ui-serif, Georgia, serif;
+
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-family: var(--font-dense-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  min-height: 100vh;
+}
+
+.dense-app * {
+  box-sizing: border-box;
+}
+
+.dense-app ::selection {
+  background: var(--accent-dim);
+  color: var(--fg-0);
+}
+
+.dense-app button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dense-app a {
+  color: inherit;
+  text-decoration: none;
+}
+.dense-app input,
+.dense-app textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Shell ---------- */
+.dense-app .shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+  background: var(--bg-1);
+}
+
+/* ---------- Sidebar ---------- */
+.dense-app .sidebar {
+  background: var(--bg-0);
+  border-right: 1px solid var(--line-1);
+  padding: 14px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.dense-app .logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px 6px;
+}
+.dense-app .logo-mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--accent) 0%, oklch(62% 0.14 180) 100%);
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 4px 12px oklch(74% 0.16 145 / 0.25);
+}
+.dense-app .logo-mark::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 2px;
+  background: var(--bg-0);
+}
+.dense-app .logo-mark::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.dense-app .logo-name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg-0);
+  font-size: 13.5px;
+}
+
+.dense-app .org-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin: 0 -2px;
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  transition: background 120ms;
+}
+.dense-app .org-switcher:hover {
+  background: var(--bg-3);
+}
+.dense-app .org-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, oklch(70% 0.12 280), oklch(60% 0.14 220));
+  font-size: 9px;
+  color: var(--fg-0);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+.dense-app .org-name {
+  font-size: 12px;
+  color: var(--fg-1);
+  font-weight: 500;
+}
+.dense-app .org-switcher .chev {
+  margin-left: auto;
+  color: var(--fg-3);
+}
+
+.dense-app .nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dense-app .nav-label {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+  padding: 0 8px 4px;
+  font-weight: 500;
+}
+.dense-app .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  font-size: 12.5px;
+  font-weight: 450;
+  transition:
+    background 120ms,
+    color 120ms;
+  cursor: pointer;
+  position: relative;
+  text-decoration: none;
+}
+.dense-app .nav-item:hover {
+  background: var(--bg-2);
+  color: var(--fg-1);
+}
+.dense-app .nav-item.active {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+.dense-app .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+.dense-app .nav-item svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.85;
+}
+.dense-app .nav-count {
+  margin-left: auto;
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  background: var(--bg-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.dense-app .nav-item.active .nav-count {
+  background: var(--bg-4);
+  color: var(--fg-1);
+}
+
+.dense-app .sidebar-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dense-app .me-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+}
+.dense-app .me-name {
+  font-size: 12px;
+  color: var(--fg-0);
+  font-weight: 500;
+}
+.dense-app .me-sub {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  font-family: var(--font-dense-mono);
+}
+
+/* ---------- Avatars ---------- */
+.dense-app .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--fg-0);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  font-family: var(--font-dense-sans);
+  letter-spacing: 0;
+}
+.dense-app .avatar.sm {
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}
+.dense-app .avatar.md {
+  width: 22px;
+  height: 22px;
+  font-size: 10.5px;
+}
+.dense-app .avatar.lg {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+.dense-app .avatar[data-c='1'] {
+  background: linear-gradient(135deg, oklch(65% 0.15 25), oklch(55% 0.18 15));
+}
+.dense-app .avatar[data-c='2'] {
+  background: linear-gradient(135deg, oklch(68% 0.15 145), oklch(55% 0.17 155));
+}
+.dense-app .avatar[data-c='3'] {
+  background: linear-gradient(135deg, oklch(68% 0.15 260), oklch(55% 0.17 270));
+}
+.dense-app .avatar[data-c='4'] {
+  background: linear-gradient(135deg, oklch(70% 0.14 60), oklch(58% 0.17 40));
+}
+.dense-app .avatar[data-c='5'] {
+  background: linear-gradient(135deg, oklch(70% 0.14 320), oklch(58% 0.17 300));
+}
+
+/* ---------- Main ---------- */
+.dense-app .main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Header */
+.dense-app .dense-header {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line-1);
+  background: var(--bg-1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.dense-app .crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-dense-mono);
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+.dense-app .crumbs .here {
+  color: var(--fg-1);
+}
+.dense-app .crumbs .sep {
+  color: var(--fg-4);
+}
+
+.dense-app .h-spacer {
+  flex: 1;
+}
+
+.dense-app .search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  min-width: 260px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  color: var(--fg-3);
+  font-size: 12px;
+  transition:
+    border-color 120ms,
+    background 120ms;
+}
+.dense-app .search:hover {
+  background: var(--bg-3);
+  border-color: var(--line-3);
+}
+.dense-app .search .kbd {
+  margin-left: auto;
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.dense-app .h-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  font-size: 12px;
+  transition:
+    background 120ms,
+    color 120ms;
+  position: relative;
+}
+.dense-app .h-btn:hover {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+.dense-app .h-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.dense-app .bell-dot {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-1);
+}
+
+.dense-app .new-todo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  background: var(--fg-0);
+  color: var(--bg-0);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    background 120ms,
+    transform 120ms;
+}
+.dense-app .new-todo:hover {
+  background: white;
+}
+.dense-app .new-todo:active {
+  transform: translateY(1px);
+}
+.dense-app .new-todo .kbd {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+/* ---------- Dashboard ---------- */
+.dense-app .dash {
+  padding: 20px 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1400px;
+}
+.dense-app .dash-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 6px;
+}
+.dense-app .dash-title {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--fg-0);
+  font-family: var(--font-dense-sans);
+}
+.dense-app .dash-title .accent {
+  font-family: var(--font-dense-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+.dense-app .dash-sub {
+  font-family: var(--font-dense-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dense-app .dot-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--fg-4);
+}
+.dense-app .live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+}
+.dense-app .live-dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent);
+  animation: dense-pulse 1.8s ease-out infinite;
+}
+@keyframes dense-pulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(74% 0.16 145 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 8px oklch(74% 0.16 145 / 0);
+  }
+}
+
+.dense-app .grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+}
+.dense-app .dense-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dense-app .dense-card.span-2 {
+  grid-column: span 2;
+}
+.dense-app .card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line-1);
+}
+.dense-app .card-title {
+  font-size: 11px;
+  font-family: var(--font-dense-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-2);
+}
+.dense-app .card-title .idx {
+  color: var(--fg-4);
+  margin-right: 6px;
+}
+.dense-app .card-head-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dense-app .mini-link {
+  font-size: 11px;
+  color: var(--fg-3);
+  font-family: var(--font-dense-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition:
+    background 120ms,
+    color 120ms;
+}
+.dense-app .mini-link:hover {
+  background: var(--bg-3);
+  color: var(--fg-1);
+}
+
+/* ---------- Sprint Overview (signature) ---------- */
+.dense-app .sprint {
+  padding: 16px 18px 18px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.dense-app .sprint-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.dense-app .sprint-meta {
+  flex: 1;
+  min-width: 0;
+}
+.dense-app .sprint-name {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--fg-0);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-dense-sans);
+}
+.dense-app .badge {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dense-app .badge.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+}
+.dense-app .badge.active::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.dense-app .badge.planned {
+  background: oklch(78% 0.12 240 / 0.15);
+  color: var(--info);
+  border: 1px solid oklch(78% 0.12 240 / 0.3);
+}
+.dense-app .badge.completed {
+  background: var(--bg-3);
+  color: var(--fg-3);
+  border: 1px solid var(--line-2);
+}
+
+.dense-app .sprint-sub {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-dense-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.dense-app .sprint-nums {
+  display: flex;
+  gap: 22px;
+  text-align: right;
+}
+.dense-app .num-block .n {
+  font-family: var(--font-dense-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--fg-0);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dense-app .num-block .n .tot {
+  color: var(--fg-4);
+  font-weight: 400;
+}
+.dense-app .num-block .l {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+/* Timeline */
+.dense-app .timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dense-app .timeline-ticks {
+  display: grid;
+  gap: 3px;
+}
+.dense-app .tick {
+  height: 22px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  position: relative;
+  transition:
+    background 200ms,
+    border-color 200ms;
+}
+.dense-app .tick.past {
+  background: var(--bg-4);
+  border-color: var(--line-2);
+}
+.dense-app .tick.today {
+  background: linear-gradient(180deg, oklch(74% 0.16 145 / 0.4), oklch(74% 0.16 145 / 0.15));
+  border-color: var(--accent);
+}
+.dense-app .tick.today::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 1px;
+  height: 6px;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+.dense-app .tick.weekend {
+  opacity: 0.55;
+}
+.dense-app .tick .d {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-dense-mono);
+  font-size: 9px;
+  color: var(--fg-4);
+  font-variant-numeric: tabular-nums;
+}
+.dense-app .tick.today .d {
+  color: var(--accent);
+  font-weight: 600;
+}
+.dense-app .timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-4);
+}
+
+/* Goals */
+.dense-app .goals-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+.dense-app .goals-head .t {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.dense-app .goals-head .line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-1);
+}
+.dense-app .goals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dense-app .goal {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-1);
+  border: 1px solid var(--line-1);
+  transition:
+    background 150ms,
+    border-color 150ms,
+    transform 150ms;
+}
+.dense-app .goal:hover {
+  background: var(--bg-3);
+  border-color: var(--line-2);
+}
+.dense-app .goal-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c, var(--fg-3));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--c, var(--fg-3)) 20%, transparent);
+}
+.dense-app .goal-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.dense-app .goal-name .t {
+  color: var(--fg-0);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dense-app .goal-bar-wrap {
+  height: 5px;
+  background: var(--bg-4);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.dense-app .goal-bar {
+  height: 100%;
+  background: var(--c, var(--accent));
+  border-radius: 999px;
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--c, var(--accent)) 50%, transparent);
+}
+.dense-app .goal-counts {
+  font-family: var(--font-dense-mono);
+  font-size: 11px;
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dense-app .goal-counts .pct {
+  color: var(--fg-0);
+  font-weight: 500;
+  min-width: 36px;
+  text-align: right;
+}
+.dense-app .goal-counts .of {
+  color: var(--fg-4);
+}
+
+/* Overall progress arc */
+.dense-app .sprint-main {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 22px;
+  align-items: center;
+}
+.dense-app .arc-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+}
+.dense-app .arc-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.dense-app .arc-bg {
+  stroke: var(--bg-4);
+}
+.dense-app .arc-fg {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  filter: drop-shadow(0 0 8px oklch(74% 0.16 145 / 0.45));
+}
+.dense-app .arc-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.dense-app .arc-pct {
+  font-family: var(--font-dense-mono);
+  font-size: 34px;
+  font-weight: 500;
+  color: var(--fg-0);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.dense-app .arc-pct .pct {
+  color: var(--fg-3);
+  font-size: 18px;
+  margin-left: 1px;
+}
+.dense-app .arc-label {
+  font-family: var(--font-dense-mono);
+  font-size: 9.5px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+}
+.dense-app .arc-pace {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+  white-space: nowrap;
+}
+.dense-app .arc-pace.behind {
+  background: oklch(80% 0.15 75 / 0.15);
+  color: var(--warn);
+  border-color: oklch(80% 0.15 75 / 0.35);
+}
+
+/* ---------- My Todos ---------- */
+.dense-app .todos-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.dense-app .todo-row {
+  display: grid;
+  grid-template-columns: 18px 14px 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-1);
+  cursor: pointer;
+  position: relative;
+  transition: background 120ms;
+  text-decoration: none;
+  color: inherit;
+}
+.dense-app .todo-row:last-child {
+  border-bottom: none;
+}
+.dense-app .todo-row:hover {
+  background: var(--bg-3);
+}
+.dense-app .todo-row.completing {
+  opacity: 0.55;
+}
+.dense-app .todo-row.completing .todo-title {
+  text-decoration: line-through;
+  color: var(--fg-3);
+}
+
+.dense-app .check {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fg-4);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  transition:
+    border-color 150ms,
+    background 150ms;
+  flex-shrink: 0;
+}
+.dense-app .check:hover {
+  border-color: var(--fg-2);
+}
+.dense-app .check.in-progress {
+  border-color: var(--warn);
+  background: conic-gradient(var(--warn) 0 50%, transparent 50% 100%);
+}
+.dense-app .check.done {
+  border-color: var(--accent);
+  background: var(--accent);
+  position: relative;
+}
+.dense-app .check.done::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  border-left: 1.5px solid var(--bg-0);
+  border-bottom: 1.5px solid var(--bg-0);
+  transform: rotate(-45deg) translate(0.5px, -0.5px);
+}
+.dense-app .priority {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--fg-4);
+}
+.dense-app .priority[data-p='high'] {
+  background: var(--priority-high);
+}
+.dense-app .priority[data-p='medium'] {
+  background: var(--priority-med);
+}
+.dense-app .priority[data-p='low'] {
+  background: var(--priority-low);
+}
+
+.dense-app .todo-title {
+  color: var(--fg-0);
+  font-size: 12.5px;
+  font-weight: 450;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.dense-app .todo-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+.dense-app .todo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+}
+.dense-app .todo-tag .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c, var(--fg-3));
+}
+
+.dense-app .todo-due {
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dense-app .todo-due.soon {
+  color: var(--warn);
+}
+.dense-app .todo-due.overdue {
+  color: var(--danger);
+}
+
+.dense-app .todo-id {
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--fg-4);
+}
+
+/* ---------- Upcoming deadlines ---------- */
+.dense-app .deadlines {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.dense-app .deadline {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-1);
+  cursor: pointer;
+  transition: background 120ms;
+  text-decoration: none;
+  color: inherit;
+}
+.dense-app .deadline:last-child {
+  border-bottom: none;
+}
+.dense-app .deadline:hover {
+  background: var(--bg-3);
+}
+.dense-app .deadline-date {
+  font-family: var(--font-dense-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.dense-app .deadline-date .d {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg-0);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.dense-app .deadline-date .m {
+  font-size: 9.5px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.dense-app .deadline.overdue .deadline-date .d {
+  color: var(--danger);
+}
+.dense-app .deadline.soon .deadline-date .d {
+  color: var(--warn);
+}
+.dense-app .deadline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.dense-app .deadline-body .t {
+  color: var(--fg-1);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dense-app .deadline-body .s {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+}
+.dense-app .deadline-body .s .sep {
+  color: var(--fg-4);
+}
+
+/* ---------- Team activity ---------- */
+.dense-app .activity {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0 2px;
+}
+.dense-app .act {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 10px;
+  padding: 7px 14px;
+  align-items: flex-start;
+}
+.dense-app .act:hover {
+  background: var(--bg-3);
+}
+.dense-app .act-ava {
+  padding-top: 1px;
+}
+.dense-app .act-body {
+  font-size: 12px;
+  color: var(--fg-2);
+  line-height: 1.45;
+}
+.dense-app .act-body b {
+  color: var(--fg-0);
+  font-weight: 500;
+}
+.dense-app .act-body .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--fg-1);
+  vertical-align: baseline;
+}
+.dense-app .act-body .from {
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  text-decoration: line-through;
+}
+.dense-app .act-body .to {
+  font-family: var(--font-dense-mono);
+  font-size: 10.5px;
+  color: var(--accent);
+}
+.dense-app .act-time {
+  font-family: var(--font-dense-mono);
+  font-size: 10px;
+  color: var(--fg-4);
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+/* ---------- Empty states ---------- */
+.dense-app .empty-state {
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--fg-3);
+  font-size: 12px;
+  text-align: center;
+}
+.dense-app .empty-state .t {
+  color: var(--fg-1);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Card entrance animation */
+@keyframes dense-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dense-app .dense-card {
+  animation: dense-slide-up 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.dense-app .dense-card:nth-child(1) {
+  animation-delay: 40ms;
+}
+.dense-app .dense-card:nth-child(2) {
+  animation-delay: 120ms;
+}
+.dense-app .dense-card:nth-child(3) {
+  animation-delay: 200ms;
+}
+.dense-app .dense-card:nth-child(4) {
+  animation-delay: 280ms;
+}
+
+/* Scrollbars */
+.dense-app *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dense-app *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dense-app *::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dense-app *::-webkit-scrollbar-thumb:hover {
+  background: var(--line-3);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* Skip link override (fits dark theme) */
+.dense-app .skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.dense-app .skip-link:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 100;
+  padding: 6px 10px;
+  background: var(--accent);
+  color: var(--bg-0);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+}
+
+/* Inline icon sprite shim */
+.dense-app .dense-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   Dense menus (unscoped — Radix portals these to document.body)
+   ============================================================ */
+.dense-menu {
+  --menu-bg: #0c0e13;
+  --menu-bg-hover: #181c25;
+  --menu-line: #242a37;
+  --menu-fg: #d7dae1;
+  --menu-fg-muted: #9ba0ad;
+  --menu-fg-dim: #6b6f7c;
+  --menu-accent: oklch(74% 0.16 145);
+
+  min-width: 200px;
+  max-width: 360px;
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-line);
+  border-radius: 8px;
+  padding: 4px 0;
+  color: var(--menu-fg);
+  font-family:
+    var(--font-geist-sans),
+    'Geist',
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  font-size: 13px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 60;
+}
+.dense-menu-wide {
+  min-width: 300px;
+  max-width: 380px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.dense-menu-header {
+  padding: 9px 12px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dense-menu-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #f2f3f6;
+}
+.dense-menu-sub {
+  font-family:
+    var(--font-geist-mono),
+    'Geist Mono',
+    ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
+  font-size: 10.5px;
+  color: var(--menu-fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dense-menu-sep {
+  height: 1px;
+  background: var(--menu-line);
+  margin: 4px 0;
+}
+.dense-menu-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--menu-fg);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition:
+    background 120ms,
+    color 120ms;
+}
+.dense-menu-item[data-highlighted],
+.dense-menu-item:focus,
+.dense-menu-item:hover {
+  background: var(--menu-bg-hover);
+  color: #f2f3f6;
+}
+.dense-menu-item-muted {
+  color: var(--menu-fg-muted);
+  font-size: 11.5px;
+  text-align: center;
+  justify-content: center;
+}
+.dense-menu-item.notif.unread::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--menu-accent);
+}
+.dense-menu-item.notif {
+  padding-left: 16px;
+}
+.dense-menu-item.notif .notif-msg {
+  color: var(--menu-fg-muted);
+  font-size: 12px;
+}
+.dense-menu-item.notif.unread .notif-msg {
+  color: #f2f3f6;
+  font-weight: 500;
+}
+.dense-menu-item.notif .notif-time {
+  font-family:
+    var(--font-geist-mono),
+    'Geist Mono',
+    ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
+  font-size: 10.5px;
+  color: var(--menu-fg-dim);
+}
+.dense-menu-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--menu-fg-dim);
+  text-align: center;
+}
+.dense-menu-empty.error {
+  color: oklch(72% 0.17 25);
+}
+
+/* me-card as a trigger button: visually identical to the existing me-card. */
+.dense-app .sidebar-bottom > .me-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 120ms,
+    border-color 120ms;
+}
+.dense-app .sidebar-bottom > .me-card:hover,
+.dense-app .sidebar-bottom > .me-card[data-state='open'] {
+  background: var(--bg-3);
+  border-color: var(--line-3);
+}
+.dense-app .sidebar-bottom > .me-card .chev {
+  margin-left: auto;
+  color: var(--fg-3);
+}
+
+/* ============================================================
+   Responsive breakpoints
+   ============================================================ */
+
+/* Tablet / split-screen: trim the sidebar, collapse sprint right-rail. */
+@media (max-width: 1024px) {
+  .dense-app .shell {
+    grid-template-columns: 200px 1fr;
+  }
+  .dense-app .dash {
+    padding: 18px 18px 24px;
+  }
+  .dense-app .sprint-main {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .dense-app .sprint-main > :last-child {
+    justify-self: center;
+  }
+  .dense-app .grid {
+    grid-template-columns: 1fr;
+  }
+  .dense-app .dense-card.span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* Mobile: collapse sidebar to a top strip, stack everything. */
+@media (max-width: 720px) {
+  .dense-app .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .dense-app .sidebar {
+    position: static;
+    height: auto;
+    min-height: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--line-1);
+  }
+  .dense-app .sidebar .logo,
+  .dense-app .sidebar .org-switcher {
+    flex: 0 0 auto;
+  }
+  .dense-app .sidebar .nav-section {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px;
+    width: 100%;
+  }
+  .dense-app .sidebar .nav-section[aria-label='Sprints'] {
+    display: none;
+  }
+  .dense-app .sidebar .nav-label {
+    display: none;
+  }
+  .dense-app .sidebar .nav-item.active::before {
+    display: none;
+  }
+  .dense-app .sidebar-bottom {
+    width: 100%;
+    margin-top: 2px;
+  }
+  .dense-app .dense-header {
+    height: auto;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dense-app .crumbs {
+    font-size: 11px;
+  }
+  .dense-app .h-spacer {
+    display: none;
+  }
+  .dense-app .new-todo .kbd {
+    display: none;
+  }
+  .dense-app .dash {
+    padding: 14px 12px 20px;
+    gap: 14px;
+  }
+  .dense-app .dash-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .dense-app .dash-title {
+    font-size: 18px;
+  }
+  .dense-app .sprint {
+    padding: 14px;
+    gap: 12px;
+  }
+  .dense-app .sprint-head {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dense-app .sprint-nums {
+    gap: 18px;
+    text-align: left;
+  }
+  .dense-app .num-block .n {
+    font-size: 22px;
+  }
+  .dense-app .arc-wrap {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  .dense-app .tick .d {
+    font-size: 8px;
+  }
+  .dense-app .todo-row {
+    grid-template-columns: 18px 14px 1fr auto;
+    gap: 8px;
+  }
+  .dense-app .todo-row .todo-meta,
+  .dense-app .todo-row .todo-id {
+    display: none;
+  }
+  .dense-app .deadline {
+    grid-template-columns: 42px 1fr auto;
+    gap: 10px;
+  }
+  .dense-menu-wide {
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* Extra-narrow: tighten padding further. */
+@media (max-width: 420px) {
+  .dense-app .dash {
+    padding: 12px 10px 16px;
+  }
+  .dense-app .sprint-nums {
+    gap: 14px;
+  }
+  .dense-app .num-block .n {
+    font-size: 20px;
+  }
+}

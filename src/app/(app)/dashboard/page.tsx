@@ -1,8 +1,8 @@
 /**
- * Dashboard page — Phase 5 (FR-20).
- * Server component. Loads getDashboardData for all four sections.
- * Desktop: 2×2 CSS grid (Active Sprint | My Todos / Upcoming Deadlines | Team Activity).
- * Mobile: single-column stack in PRD-specified order.
+ * Dashboard page — dense dark redesign (FR-20).
+ * Server component. Loads getDashboardData + enriches it with the user/goal/
+ * sprint lookups the visual layer needs (actor names on the activity feed,
+ * assignee names on deadlines, goal names on todos).
  */
 import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
@@ -12,9 +12,36 @@ import { ActiveSprintCard } from '@/components/dashboard/ActiveSprintCard';
 import { MyTodosCard } from '@/components/dashboard/MyTodosCard';
 import { UpcomingDeadlinesCard } from '@/components/dashboard/UpcomingDeadlinesCard';
 import { TeamActivityCard } from '@/components/dashboard/TeamActivityCard';
+import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
+import { sprintDayMath, todayIsoInZone } from '@/components/layout/dense/utils';
 import { env } from '@/lib/env';
-import { formatMastheadDate } from '@/lib/utils/date';
 import type { User } from '@/types/domain';
+
+function greetingFor(date: Date, timeZone: string): string {
+  const hour = Number(
+    date.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone }),
+  );
+  if (hour < 5) return 'Late night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function formatLocal(date: Date, timeZone: string): string {
+  const dayPart = date.toLocaleString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone,
+  });
+  const timePart = date.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone,
+  });
+  return `${dayPart} · ${timePart} local`;
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -41,68 +68,140 @@ export default async function DashboardPage() {
 
   const data = await getDashboardData({ actor });
 
-  const today = formatMastheadDate(new Date(), env.ORG_TIMEZONE);
+  // ── Lookups: actors, assignees, goals ────────────────────────────────────
+  const actorIds = new Set<string>();
+  for (const ev of data.activity) {
+    actorIds.add(ev.actorUserId);
+    const payload = (ev.payload ?? {}) as Record<string, unknown>;
+    const assigneeId = payload['assigneeUserId'];
+    if (typeof assigneeId === 'string') actorIds.add(assigneeId);
+  }
+  const assigneeIds = new Set<string>();
+  for (const t of data.upcomingDeadlines) {
+    if (t.assigneeUserId) assigneeIds.add(t.assigneeUserId);
+  }
+  const goalIds = new Set<string>();
+  for (const t of [...data.myTodos, ...data.upcomingDeadlines]) {
+    if (t.sprintGoalId) goalIds.add(t.sprintGoalId);
+  }
+  const allUserIds = new Set([...actorIds, ...assigneeIds]);
+
+  const sinceWindow = new Date(Date.now() - 15 * 60_000);
+
+  const [userRows, goalRows, onlineCount, onlineSample] = await Promise.all([
+    allUserIds.size > 0
+      ? prisma.user.findMany({
+          where: { id: { in: Array.from(allUserIds) } },
+          select: { id: true, displayName: true, email: true },
+        })
+      : Promise.resolve([] as Array<{ id: string; displayName: string | null; email: string | null }>),
+    goalIds.size > 0
+      ? prisma.sprintGoal.findMany({
+          where: { id: { in: Array.from(goalIds) } },
+          select: { id: true, name: true, position: true },
+          orderBy: { position: 'asc' },
+        })
+      : Promise.resolve([] as Array<{ id: string; name: string; position: number }>),
+    prisma.user.count({
+      where: { isActive: true, lastSeenAt: { gte: sinceWindow } },
+    }),
+    prisma.user.findMany({
+      where: { isActive: true, lastSeenAt: { gte: sinceWindow } },
+      select: { id: true, displayName: true, email: true },
+      orderBy: { lastSeenAt: 'desc' },
+      take: 4,
+    }),
+  ]);
+
+  const actorLookup: Record<string, { id: string; displayName: string | null; email: string | null }> = {};
+  for (const u of userRows) actorLookup[u.id] = u;
+
+  const activeSprintGoalIds = data.activeSprint?.goalProgress.map((g) => g.goalId) ?? [];
+  const goalLookup: Record<string, { id: string; name: string; index: number }> = {};
+  let extraGoalIdx = activeSprintGoalIds.length;
+  for (const g of goalRows) {
+    const idx = activeSprintGoalIds.indexOf(g.id);
+    goalLookup[g.id] = {
+      id: g.id,
+      name: g.name,
+      index: idx >= 0 ? idx : extraGoalIdx++,
+    };
+  }
+
+  const now = new Date();
+  const tz = env.ORG_TIMEZONE;
+  const greeting = greetingFor(now, tz);
+  const localStamp = formatLocal(now, tz);
+  const todayIso = todayIsoInZone(now, tz);
+
+  let dayBadge: string | null = null;
+  let paceFlavour = 'welcome back.';
+  if (data.activeSprint) {
+    const { totalDays, todayIndex } = sprintDayMath(
+      data.activeSprint.sprint.startDate,
+      data.activeSprint.sprint.endDate,
+      todayIso,
+    );
+    // Clamp to [1, totalDays] so the badge stays inside the sprint window.
+    const elapsed = Math.min(totalDays, Math.max(1, todayIndex));
+    dayBadge = `Day ${elapsed} of ${totalDays}`;
+    if (data.activeSprint.overall.total > 0) {
+      const timePct = (elapsed / totalDays) * 100;
+      const donePct = (data.activeSprint.overall.done / data.activeSprint.overall.total) * 100;
+      const pace = donePct - timePct;
+      if (pace > 5) paceFlavour = "you're ahead.";
+      else if (pace < -5) paceFlavour = 'time to push.';
+      else paceFlavour = "you're on pace.";
+    }
+  }
 
   return (
-    <div className="px-4 py-8 lg:px-10 lg:py-12">
-      {/* Masthead */}
-      <header className="relative mb-10 border-b-2 border-ink pb-8">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="kicker mb-3">
-              <span className="mr-2 inline-block border-2 border-ink bg-acid px-1.5 py-[2px] text-ink">
-                VOL.01
-              </span>
-              {today}
-            </p>
-            <h1 className="display-xl">
-              The
-              <br />
-              <span className="inline-block">
-                <span className="relative">
-                  Daily
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-1 -z-10 h-3 bg-acid"
-                  />
-                </span>{' '}
-                Ledger
-              </span>
-            </h1>
+    <div className="dash">
+      <div className="dash-title-row">
+        <div>
+          <div className="dash-title">
+            {greeting} — <span className="accent">{paceFlavour}</span>
           </div>
-          <div className="max-w-xs font-mono text-xs leading-relaxed text-muted-foreground">
-            <p className="text-ink">{'// Four panels. Where the team stands today.'}</p>
-            <p className="mt-2">
-              Active sprint · Your plate · Burning deadlines · Team signal.
-            </p>
+          <div className="dash-sub" style={{ marginTop: 6 }}>
+            <span>{localStamp}</span>
+            {dayBadge && (
+              <>
+                <span className="dot-sep" />
+                <span>{dayBadge}</span>
+              </>
+            )}
+            <span className="dot-sep" />
+            <span className="live-dot">synced</span>
           </div>
         </div>
-      </header>
-
-      {/*
-       * Desktop (≥1024px): 2×2 CSS grid
-       *   Col 1: Active Sprint (top-left) | Upcoming Deadlines (bottom-left)
-       *   Col 2: My Todos (top-right)     | Team Activity (bottom-right)
-       *
-       * Mobile (<1024px): single column stack in PRD order:
-       *   Active Sprint → My Todos → Upcoming Deadlines → Team Activity
-       */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:grid-rows-2 lg:gap-8">
-        <div className="lg:col-start-1 lg:row-start-1">
-          <ActiveSprintCard data={data.activeSprint} />
+        <div className="dash-sub">
+          <span>
+            {onlineCount} teammate{onlineCount === 1 ? '' : 's'} online
+          </span>
+          <div style={{ display: 'flex' }}>
+            {onlineSample.map((u, i) => (
+              <span key={u.id} style={{ marginLeft: i === 0 ? 0 : -5 }}>
+                <DenseAvatar
+                  userId={u.id}
+                  displayName={u.displayName}
+                  email={u.email}
+                  size="sm"
+                />
+              </span>
+            ))}
+          </div>
         </div>
+      </div>
 
-        <div className="lg:col-start-2 lg:row-start-1">
-          <MyTodosCard todos={data.myTodos} />
-        </div>
-
-        <div className="lg:col-start-1 lg:row-start-2">
-          <UpcomingDeadlinesCard todos={data.upcomingDeadlines} />
-        </div>
-
-        <div className="lg:col-start-2 lg:row-start-2">
-          <TeamActivityCard events={data.activity} />
-        </div>
+      <div className="grid">
+        <ActiveSprintCard data={data.activeSprint} todayIso={todayIso} />
+        <MyTodosCard todos={data.myTodos} goalLookup={goalLookup} />
+        <UpcomingDeadlinesCard
+          todos={data.upcomingDeadlines}
+          assigneeLookup={actorLookup}
+          goalLookup={goalLookup}
+        />
+        <TeamActivityCard events={data.activity} actorLookup={actorLookup} />
       </div>
     </div>
   );
