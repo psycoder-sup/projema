@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { CSSProperties } from 'react';
 import { isNavLinkActive } from '@/components/layout/nav-active';
 import type { Sprint } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
@@ -53,7 +54,13 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
         <div className="logo-name">Projema</div>
       </Link>
 
-      <button type="button" className="org-switcher" aria-label="Switch organisation">
+      <button
+        type="button"
+        className="org-switcher"
+        disabled
+        aria-disabled="true"
+        aria-label="Switch organisation — coming soon"
+      >
         <div className="org-avatar" aria-hidden>
           {orgInitial}
         </div>
@@ -101,28 +108,10 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
                 href={sprintHref}
                 className={`nav-item ${s.status === 'active' || active ? 'active' : ''}`}
                 aria-current={active ? 'page' : undefined}
+                style={{ ['--sprint-dot' as string]: dotColor } as CSSProperties}
               >
-                <span
-                  aria-hidden
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    marginLeft: 4,
-                    background: dotColor,
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    color: s.status === 'active' ? 'var(--fg-0)' : 'var(--fg-2)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {s.name}
-                </span>
+                <span aria-hidden className="sprint-dot" />
+                <span className="sidebar-sprint-name">{s.name}</span>
               </Link>
             );
           })}

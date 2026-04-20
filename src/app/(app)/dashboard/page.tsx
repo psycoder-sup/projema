@@ -69,22 +69,20 @@ export default async function DashboardPage() {
   const data = await getDashboardData({ actor });
 
   // ── Lookups: actors, assignees, goals ────────────────────────────────────
-  const actorIds = new Set<string>();
+  const allUserIds = new Set<string>();
   for (const ev of data.activity) {
-    actorIds.add(ev.actorUserId);
+    allUserIds.add(ev.actorUserId);
     const payload = (ev.payload ?? {}) as Record<string, unknown>;
     const assigneeId = payload['assigneeUserId'];
-    if (typeof assigneeId === 'string') actorIds.add(assigneeId);
+    if (typeof assigneeId === 'string') allUserIds.add(assigneeId);
   }
-  const assigneeIds = new Set<string>();
   for (const t of data.upcomingDeadlines) {
-    if (t.assigneeUserId) assigneeIds.add(t.assigneeUserId);
+    if (t.assigneeUserId) allUserIds.add(t.assigneeUserId);
   }
   const goalIds = new Set<string>();
   for (const t of [...data.myTodos, ...data.upcomingDeadlines]) {
     if (t.sprintGoalId) goalIds.add(t.sprintGoalId);
   }
-  const allUserIds = new Set([...actorIds, ...assigneeIds]);
 
   const sinceWindow = new Date(Date.now() - 15 * 60_000);
 
@@ -116,16 +114,23 @@ export default async function DashboardPage() {
   const actorLookup: Record<string, { id: string; displayName: string | null; email: string | null }> = {};
   for (const u of userRows) actorLookup[u.id] = u;
 
-  const activeSprintGoalIds = data.activeSprint?.goalProgress.map((g) => g.goalId) ?? [];
+  // Pre-seed goalLookup with active-sprint ordering so the goal colour palette
+  // lines up with the ActiveSprintCard's bars; then append any extras.
+  // `goalProgress.goalId` may be null for the "unassigned" bucket — skip those
+  // because they have no row in `goalRows`.
+  const activeSprintGoalIds = (data.activeSprint?.goalProgress ?? [])
+    .map((g) => g.goalId)
+    .filter((id): id is string => id !== null);
   const goalLookup: Record<string, { id: string; name: string; index: number }> = {};
+  activeSprintGoalIds.forEach((id, index) => {
+    const g = goalRows.find((r) => r.id === id);
+    if (g) goalLookup[id] = { id, name: g.name, index };
+  });
   let extraGoalIdx = activeSprintGoalIds.length;
   for (const g of goalRows) {
-    const idx = activeSprintGoalIds.indexOf(g.id);
-    goalLookup[g.id] = {
-      id: g.id,
-      name: g.name,
-      index: idx >= 0 ? idx : extraGoalIdx++,
-    };
+    if (!goalLookup[g.id]) {
+      goalLookup[g.id] = { id: g.id, name: g.name, index: extraGoalIdx++ };
+    }
   }
 
   const now = new Date();
@@ -134,14 +139,19 @@ export default async function DashboardPage() {
   const localStamp = formatLocal(now, tz);
   const todayIso = todayIsoInZone(now, tz);
 
+  // Single source of truth for sprint-day math; passed down to ActiveSprintCard.
+  const sprintDays = data.activeSprint
+    ? sprintDayMath(
+        data.activeSprint.sprint.startDate,
+        data.activeSprint.sprint.endDate,
+        todayIso,
+      )
+    : null;
+
   let dayBadge: string | null = null;
   let paceFlavour = 'welcome back.';
-  if (data.activeSprint) {
-    const { totalDays, todayIndex } = sprintDayMath(
-      data.activeSprint.sprint.startDate,
-      data.activeSprint.sprint.endDate,
-      todayIso,
-    );
+  if (data.activeSprint && sprintDays) {
+    const { totalDays, todayIndex } = sprintDays;
     // Clamp to [1, totalDays] so the badge stays inside the sprint window.
     const elapsed = Math.min(totalDays, Math.max(1, todayIndex));
     dayBadge = `Day ${elapsed} of ${totalDays}`;
@@ -194,12 +204,17 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid">
-        <ActiveSprintCard data={data.activeSprint} todayIso={todayIso} />
-        <MyTodosCard todos={data.myTodos} goalLookup={goalLookup} />
+        <ActiveSprintCard
+          data={data.activeSprint}
+          totalDays={sprintDays?.totalDays ?? 1}
+          todayIndex={sprintDays?.todayIndex ?? 0}
+        />
+        <MyTodosCard todos={data.myTodos} goalLookup={goalLookup} todayIso={todayIso} />
         <UpcomingDeadlinesCard
           todos={data.upcomingDeadlines}
           assigneeLookup={actorLookup}
           goalLookup={goalLookup}
+          todayIso={todayIso}
         />
         <TeamActivityCard events={data.activity} actorLookup={actorLookup} />
       </div>

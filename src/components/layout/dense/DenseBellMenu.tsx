@@ -14,6 +14,7 @@ import {
 } from '@/server/actions/notifications';
 import type { Notification, NotificationKind } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
+import { formatTimeAgo } from './utils';
 
 function notificationMessage(kind: NotificationKind): string {
   switch (kind) {
@@ -24,14 +25,6 @@ function notificationMessage(kind: NotificationKind): string {
     case 'due_soon':
       return 'A todo assigned to you is due soon';
   }
-}
-
-function formatRelative(date: Date): string {
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86_400)}d ago`;
 }
 
 interface RowProps {
@@ -47,7 +40,7 @@ function NotificationRow({ notification, onRead }: RowProps) {
       onSelect={() => onRead(notification.id, notification.targetTodoId)}
     >
       <div className="notif-msg">{notificationMessage(notification.kind)}</div>
-      <div className="notif-time">{formatRelative(new Date(notification.createdAt))}</div>
+      <div className="notif-time">{formatTimeAgo(new Date(notification.createdAt), { long: true })}</div>
     </Dropdown.Item>
   );
 }

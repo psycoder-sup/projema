@@ -6,18 +6,20 @@
 import Link from 'next/link';
 import type { DashboardData } from '@/types/domain';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
-import { goalColor, shortMonth, sprintDayMath } from '@/components/layout/dense/utils';
+import { goalColor, shortMonth } from '@/components/layout/dense/utils';
 import { ProgressArc } from './dense/ProgressArc';
 import { GoalRow } from './dense/GoalRow';
 
 interface ActiveSprintCardProps {
   data: DashboardData['activeSprint'];
   /**
-   * Today as a YYYY-MM-DD string in the org's configured timezone. Passed
-   * in from the server so sprint-day math lines up with what the user sees
-   * on the clock (vs. whatever UTC happens to be).
+   * Sprint-day math computed once on the server (see `sprintDayMath` in
+   * `components/layout/dense/utils`). Passed in so the card doesn't
+   * recompute what the page already knows and so the timezone basis stays
+   * consistent with the rest of the dashboard.
    */
-  todayIso: string;
+  totalDays: number;
+  todayIndex: number;
 }
 
 interface DayCell {
@@ -29,14 +31,16 @@ interface DayCell {
   today: boolean;
 }
 
-function buildDays(startDate: string, endDate: string, todayIso: string): {
+function buildDays(
+  startDate: string,
+  endDate: string,
+  totalDays: number,
+  todayIndex: number,
+): {
   cells: DayCell[];
-  totalDays: number;
-  todayIndex: number; // 1-based; 0 if before sprint, totalDays+1 if after
   startLabel: string;
   endLabel: string;
 } {
-  const { totalDays, todayIndex } = sprintDayMath(startDate, endDate, todayIso);
   const start = new Date(startDate + 'T00:00:00Z');
   const end = new Date(endDate + 'T00:00:00Z');
   const dayMs = 86_400_000;
@@ -63,15 +67,23 @@ function buildDays(startDate: string, endDate: string, todayIso: string): {
 
   return {
     cells,
-    totalDays,
-    todayIndex,
     startLabel: `${fmt(start)} · start`,
     endLabel: `${fmt(end)} · end`,
   };
 }
 
-function SprintTimeline({ startDate, endDate, todayIso }: { startDate: string; endDate: string; todayIso: string }) {
-  const { cells, totalDays, todayIndex, startLabel, endLabel } = buildDays(startDate, endDate, todayIso);
+function SprintTimeline({
+  startDate,
+  endDate,
+  totalDays,
+  todayIndex,
+}: {
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  todayIndex: number;
+}) {
+  const { cells, startLabel, endLabel } = buildDays(startDate, endDate, totalDays, todayIndex);
   const todayLabel =
     todayIndex === 0
       ? 'before start'
@@ -128,7 +140,7 @@ function EmptySprint() {
   );
 }
 
-export function ActiveSprintCard({ data, todayIso }: ActiveSprintCardProps) {
+export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCardProps) {
   if (data === null) {
     return <EmptySprint />;
   }
@@ -137,7 +149,6 @@ export function ActiveSprintCard({ data, todayIso }: ActiveSprintCardProps) {
 
   // Compute pct + pace
   const pct = overall.total === 0 ? 0 : (overall.done / overall.total) * 100;
-  const { totalDays, todayIndex } = sprintDayMath(sprint.startDate, sprint.endDate, todayIso);
   const elapsedDays = Math.min(totalDays, Math.max(0, todayIndex));
   const remaining = Math.max(0, totalDays - elapsedDays);
   const timePct = (elapsedDays / totalDays) * 100;
@@ -209,8 +220,13 @@ export function ActiveSprintCard({ data, todayIso }: ActiveSprintCardProps) {
         </div>
 
         <div className="sprint-main">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-            <SprintTimeline startDate={sprint.startDate} endDate={sprint.endDate} todayIso={todayIso} />
+          <div className="sprint-main-col">
+            <SprintTimeline
+              startDate={sprint.startDate}
+              endDate={sprint.endDate}
+              totalDays={totalDays}
+              todayIndex={todayIndex}
+            />
             <div className="goals-head">
               <span className="t">Goals</span>
               <span className="line" />
@@ -236,7 +252,7 @@ export function ActiveSprintCard({ data, todayIso }: ActiveSprintCardProps) {
               )}
             </div>
           </div>
-          <div style={{ position: 'relative' }}>
+          <div className="sprint-main-arc">
             <ProgressArc pct={pct} />
             {overall.total > 0 && (
               <div className={`arc-pace ${pace < 0 ? 'behind' : ''}`}>{paceLabel}</div>

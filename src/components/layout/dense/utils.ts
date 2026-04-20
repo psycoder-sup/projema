@@ -39,12 +39,17 @@ export function goalColor(index: number): string {
   return GOAL_PALETTE[index % GOAL_PALETTE.length] ?? 'oklch(74% 0.16 145)';
 }
 
-export function diffDays(target: Date, today: Date): number {
-  const t = new Date(target);
-  const n = new Date(today);
-  t.setHours(0, 0, 0, 0);
-  n.setHours(0, 0, 0, 0);
-  return Math.round((t.getTime() - n.getTime()) / 86_400_000);
+/**
+ * Day delta between two calendar days expressed as YYYY-MM-DD strings.
+ * Parses both as UTC midnight so the result is independent of the render
+ * process's local timezone — matches `sprintDayMath`'s convention so
+ * deadline labels line up with the org's wall-clock calendar.
+ */
+export function diffDaysIso(targetIso: string, todayIso: string): number {
+  const dayMs = 86_400_000;
+  return Math.round(
+    (Date.parse(targetIso + 'T00:00:00Z') - Date.parse(todayIso + 'T00:00:00Z')) / dayMs,
+  );
 }
 
 export function dueLabel(diff: number | null): { text: string; cls: '' | 'soon' | 'overdue' } {
@@ -59,6 +64,20 @@ export function dueLabel(diff: number | null): { text: string; cls: '' | 'soon' 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function shortMonth(monthIdx: number): string {
   return SHORT_MONTHS[monthIdx] ?? '';
+}
+
+/**
+ * "time ago" formatter. `long: true` returns "just now"/"m ago"/"h ago"/"d ago"
+ * (for dropdown-menu rows); default returns the compact form "now"/"m"/"h"/"d"
+ * (for the wire-feed timestamp column).
+ */
+export function formatTimeAgo(date: Date, opts: { long?: boolean } = {}): string {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  const long = opts.long ?? false;
+  if (diff < 60) return long ? 'just now' : 'now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}${long ? 'm ago' : 'm'}`;
+  if (diff < 86_400) return `${Math.floor(diff / 3600)}${long ? 'h ago' : 'h'}`;
+  return `${Math.floor(diff / 86_400)}${long ? 'd ago' : 'd'}`;
 }
 
 /**

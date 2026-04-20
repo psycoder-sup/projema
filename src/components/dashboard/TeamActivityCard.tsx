@@ -5,6 +5,7 @@
 import type { ActivityEvent } from '@/types/domain';
 import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
+import { formatTimeAgo } from '@/components/layout/dense/utils';
 
 interface ActorEntry {
   id: string;
@@ -15,21 +16,6 @@ interface ActorEntry {
 interface TeamActivityCardProps {
   events: ActivityEvent[];
   actorLookup: Record<string, ActorEntry>;
-}
-
-function formatTimeAgo(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-}
-
-function shortStatus(s: string): string {
-  return s.replace('_', '-');
 }
 
 interface ParsedEvent {
@@ -69,8 +55,8 @@ function parseEvent(event: ActivityEvent, actorLookup: Record<string, ActorEntry
       return {
         ...base,
         verb: 'moved',
-        from: from ? shortStatus(from) : null,
-        to: to ? shortStatus(to) : null,
+        from: from ? from.replace('_', '-') : null,
+        to: to ? to.replace('_', '-') : null,
       };
     }
     case 'todo_assigned': {
@@ -128,7 +114,7 @@ function ActivityItem({ event, actorLookup }: { event: ActivityEvent; actorLooku
           </>
         )}
       </div>
-      <div className="act-time">{formatTimeAgo(event.createdAt)}</div>
+      <div className="act-time">{formatTimeAgo(new Date(event.createdAt))}</div>
     </div>
   );
 }

@@ -239,6 +239,23 @@
   padding: 1px 5px;
   border-radius: 3px;
 }
+.dense-app .sprint-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 4px;
+  flex-shrink: 0;
+  background: var(--sprint-dot, var(--fg-4));
+}
+.dense-app .sidebar-sprint-name {
+  color: var(--fg-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dense-app .nav-item.active .sidebar-sprint-name {
+  color: var(--fg-0);
+}
 .dense-app .nav-item.active .nav-count {
   background: var(--bg-4);
   color: var(--fg-1);
@@ -252,12 +269,34 @@
 }
 .dense-app .me-card {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 9px;
   padding: 8px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line-2);
   background: var(--bg-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 120ms,
+    border-color 120ms;
+}
+.dense-app .me-card:hover,
+.dense-app .me-card[data-state='open'] {
+  background: var(--bg-3);
+  border-color: var(--line-3);
+}
+.dense-app .me-card .chev {
+  margin-left: auto;
+  color: var(--fg-3);
+}
+.dense-app .me-card-text {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
 }
 .dense-app .me-name {
   font-size: 12px;
@@ -347,42 +386,17 @@
 .dense-app .crumbs .here {
   color: var(--fg-1);
 }
+.dense-app .crumb-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .dense-app .crumbs .sep {
   color: var(--fg-4);
 }
 
 .dense-app .h-spacer {
   flex: 1;
-}
-
-.dense-app .search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 9px;
-  min-width: 260px;
-  background: var(--bg-2);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-sm);
-  color: var(--fg-3);
-  font-size: 12px;
-  transition:
-    border-color 120ms,
-    background 120ms;
-}
-.dense-app .search:hover {
-  background: var(--bg-3);
-  border-color: var(--line-3);
-}
-.dense-app .search .kbd {
-  margin-left: auto;
-  font-family: var(--font-dense-mono);
-  font-size: 10px;
-  color: var(--fg-3);
-  background: var(--bg-3);
-  border: 1px solid var(--line-2);
-  padding: 1px 5px;
-  border-radius: 3px;
 }
 
 .dense-app .h-btn {
@@ -842,6 +856,15 @@
   gap: 22px;
   align-items: center;
 }
+.dense-app .sprint-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.dense-app .sprint-main-arc {
+  position: relative;
+}
 .dense-app .arc-wrap {
   position: relative;
   width: 180px;
@@ -1264,14 +1287,6 @@
   font-size: 12px;
 }
 
-/* Inline icon sprite shim */
-.dense-app .dense-icon {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  vertical-align: middle;
-}
-
 /* ============================================================
    Dense menus (unscoped — Radix portals these to document.body)
    ============================================================ */
@@ -1406,34 +1421,6 @@
 }
 .dense-menu-empty.error {
   color: oklch(72% 0.17 25);
-}
-
-/* me-card as a trigger button: visually identical to the existing me-card. */
-.dense-app .sidebar-bottom > .me-card {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--line-2);
-  background: var(--bg-2);
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-  transition:
-    background 120ms,
-    border-color 120ms;
-}
-.dense-app .sidebar-bottom > .me-card:hover,
-.dense-app .sidebar-bottom > .me-card[data-state='open'] {
-  background: var(--bg-3);
-  border-color: var(--line-3);
-}
-.dense-app .sidebar-bottom > .me-card .chev {
-  margin-left: auto;
-  color: var(--fg-3);
 }
 
 /* ============================================================

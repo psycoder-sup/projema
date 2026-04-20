@@ -2,7 +2,8 @@
 /**
  * Account menu for the dense sidebar me-card (FR-04).
  * The trigger is the entire me-card; the dropdown contains the Sign out
- * action, backed by Auth.js's server action (server-only import).
+ * action. Uses the `next-auth/react` client `signOut` — POSTs to
+ * `/api/auth/signout` and then redirects to `/sign-in`.
  */
 import { signOut } from 'next-auth/react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
@@ -33,7 +34,7 @@ export function DenseAccountMenu({ user, orgName }: DenseAccountMenuProps) {
             email={user.email}
             size="md"
           />
-          <div style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
+          <div className="me-card-text">
             <div className="me-name">{label}</div>
             <div className="me-sub">
               {user.role} · {orgName}

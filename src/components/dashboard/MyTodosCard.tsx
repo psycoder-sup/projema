@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import type { Todo } from '@/types/domain';
 import { DenseIcon } from '@/components/layout/dense/IconSprite';
-import { diffDays, dueLabel, goalColor } from '@/components/layout/dense/utils';
+import { diffDaysIso, dueLabel, goalColor } from '@/components/layout/dense/utils';
 
 interface GoalLookupEntry {
   id: string;
@@ -16,6 +16,7 @@ interface GoalLookupEntry {
 interface MyTodosCardProps {
   todos: Todo[];
   goalLookup: Record<string, GoalLookupEntry>;
+  todayIso: string;
 }
 
 function statusToCheckClass(status: Todo['status']): string {
@@ -28,8 +29,8 @@ function shortGoalName(name: string, words = 3): string {
   return name.split(/\s+/).slice(0, words).join(' ');
 }
 
-function TodoRow({ todo, goalLookup, today }: { todo: Todo; goalLookup: Record<string, GoalLookupEntry>; today: Date }) {
-  const diff = todo.dueDate ? diffDays(new Date(todo.dueDate), today) : null;
+function TodoRow({ todo, goalLookup, todayIso }: { todo: Todo; goalLookup: Record<string, GoalLookupEntry>; todayIso: string }) {
+  const diff = todo.dueDate ? diffDaysIso(todo.dueDate, todayIso) : null;
   const due = dueLabel(diff);
   const goal = todo.sprintGoalId ? goalLookup[todo.sprintGoalId] : undefined;
   const goalC = goal ? goalColor(goal.index) : 'var(--fg-4)';
@@ -62,9 +63,8 @@ function TodoRow({ todo, goalLookup, today }: { todo: Todo; goalLookup: Record<s
   );
 }
 
-export function MyTodosCard({ todos, goalLookup }: MyTodosCardProps) {
+export function MyTodosCard({ todos, goalLookup, todayIso }: MyTodosCardProps) {
   const visible = todos.slice(0, 7);
-  const today = new Date();
 
   return (
     <div className="dense-card" aria-label="My todos">
@@ -92,7 +92,7 @@ export function MyTodosCard({ todos, goalLookup }: MyTodosCardProps) {
           </div>
         ) : (
           visible.map((t) => (
-            <TodoRow key={t.id} todo={t} goalLookup={goalLookup} today={today} />
+            <TodoRow key={t.id} todo={t} goalLookup={goalLookup} todayIso={todayIso} />
           ))
         )}
       </div>

@@ -5,7 +5,6 @@ interface DenseAvatarProps {
   displayName?: string | null;
   email?: string | null;
   size?: 'sm' | 'md' | 'lg';
-  bucket?: number;
 }
 
 export function DenseAvatar({
@@ -13,9 +12,8 @@ export function DenseAvatar({
   displayName,
   email,
   size = 'md',
-  bucket,
 }: DenseAvatarProps) {
-  const c = bucket ?? avatarBucket(userId ?? displayName ?? email ?? null);
+  const c = avatarBucket(userId ?? displayName ?? email ?? null);
   const label = displayName ?? email ?? null;
   return (
     <div

@@ -4,7 +4,7 @@
  */
 import Link from 'next/link';
 import type { Todo } from '@/types/domain';
-import { diffDays, dueLabel, shortMonth } from '@/components/layout/dense/utils';
+import { diffDaysIso, dueLabel, shortMonth } from '@/components/layout/dense/utils';
 
 interface AssigneeLookupEntry {
   id: string;
@@ -22,23 +22,24 @@ interface UpcomingDeadlinesCardProps {
   todos: Todo[];
   assigneeLookup: Record<string, AssigneeLookupEntry>;
   goalLookup: Record<string, GoalLookupEntry>;
+  todayIso: string;
 }
 
 function DeadlineRow({
   todo,
   assigneeLookup,
   goalLookup,
-  today,
+  todayIso,
 }: {
   todo: Todo;
   assigneeLookup: Record<string, AssigneeLookupEntry>;
   goalLookup: Record<string, GoalLookupEntry>;
-  today: Date;
+  todayIso: string;
 }) {
   if (!todo.dueDate) return null;
 
   const date = new Date(todo.dueDate + 'T00:00:00Z');
-  const diff = diffDays(date, today);
+  const diff = diffDaysIso(todo.dueDate, todayIso);
   const due = dueLabel(diff);
   const day = String(date.getUTCDate()).padStart(2, '0');
   const month = shortMonth(date.getUTCMonth());
@@ -73,9 +74,8 @@ function DeadlineRow({
   );
 }
 
-export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup }: UpcomingDeadlinesCardProps) {
+export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup, todayIso }: UpcomingDeadlinesCardProps) {
   const visible = todos.slice(0, 5);
-  const today = new Date();
 
   return (
     <div className="dense-card" aria-label="Upcoming deadlines">
@@ -102,7 +102,7 @@ export function UpcomingDeadlinesCard({ todos, assigneeLookup, goalLookup }: Upc
               todo={t}
               assigneeLookup={assigneeLookup}
               goalLookup={goalLookup}
-              today={today}
+              todayIso={todayIso}
             />
           ))
         )}

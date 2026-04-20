@@ -56,7 +56,8 @@ export function DenseHeader({ orgName }: DenseHeaderProps) {
   const crumbs = deriveCrumbs(pathname);
 
   // Global "C" shortcut: go to new-todo form. Ignored when the user is
-  // typing in an input/textarea/contenteditable — standard Linear behaviour.
+  // typing in an input/textarea/contenteditable OR when focus is inside
+  // (or a) Radix menu/dialog/listbox — standard Linear behaviour.
   useEffect(() => {
     function isTypingTarget(target: EventTarget | null): boolean {
       if (!(target instanceof HTMLElement)) return false;
@@ -64,10 +65,21 @@ export function DenseHeader({ orgName }: DenseHeaderProps) {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
       return target.isContentEditable;
     }
+    function isInOverlay(target: EventTarget | null): boolean {
+      if (target instanceof HTMLElement) {
+        if (target.closest('[role="menu"],[role="menuitem"],[role="dialog"],[role="listbox"]')) {
+          return true;
+        }
+      }
+      return document.querySelector(
+        '[data-state="open"][role="menu"], [data-state="open"][role="dialog"]',
+      ) !== null;
+    }
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'c' && e.key !== 'C') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
+      if (isInOverlay(e.target)) return;
       e.preventDefault();
       router.push('/todos/new');
     }
@@ -80,7 +92,7 @@ export function DenseHeader({ orgName }: DenseHeaderProps) {
       <nav className="crumbs" aria-label="Breadcrumb">
         <span>{orgName}</span>
         {crumbs.map((c, i) => (
-          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span key={i} className="crumb-seg">
             <span className="sep">/</span>
             <span
               className={i === crumbs.length - 1 ? 'here' : undefined}
