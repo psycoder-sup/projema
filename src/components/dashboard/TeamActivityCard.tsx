@@ -130,7 +130,7 @@ export function TeamActivityCard({ events, actorLookup }: TeamActivityCardProps)
         </span>
         <div className="card-head-right">
           <span className="mini-link" style={{ color: 'var(--fg-2)' }}>
-            last 3 hours
+            last 15 events
           </span>
           <span className="mini-link">
             Feed <DenseIcon id="i-chev-r" />

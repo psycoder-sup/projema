@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { isNavLinkActive } from '@/components/layout/nav-active';
+import { bestNavMatch } from '@/components/layout/nav-active';
 import type { Sprint } from '@/types/domain';
 import { DenseIcon } from './IconSprite';
 import { DenseAccountMenu } from './DenseAccountMenu';
@@ -30,7 +30,6 @@ interface NavSpec {
   label: string;
   href: string;
   icon: string;
-  exact?: boolean;
   count: number | null;
 }
 
@@ -38,14 +37,20 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
   const pathname = usePathname() ?? '';
 
   const items: NavSpec[] = [
-    { id: 'dash', label: 'Dashboard', href: '/dashboard', icon: 'i-dash', exact: true, count: null },
+    { id: 'dash', label: 'Dashboard', href: '/dashboard', icon: 'i-dash', count: null },
     { id: 'mine', label: 'My todos', href: '/todos/mine', icon: 'i-check-sq', count: counts.myTodos },
     { id: 'sprints', label: 'Sprints', href: '/sprints', icon: 'i-sprint', count: counts.activeSprints },
-    { id: 'back', label: 'Backlog', href: '/todos', icon: 'i-inbox', exact: true, count: counts.backlog },
+    { id: 'back', label: 'Backlog', href: '/todos', icon: 'i-inbox', count: counts.backlog },
   ];
   if (user.role === 'admin') {
     items.push({ id: 'team', label: 'Team', href: '/admin/members', icon: 'i-team', count: null });
   }
+  // Longest-prefix match so detail routes like `/todos/<id>` highlight
+  // "Backlog" without also lighting up "My todos" on `/todos/mine`.
+  const bestHref = bestNavMatch(
+    pathname,
+    items.map((it) => it.href),
+  );
 
   return (
     <aside className="sidebar" aria-label="Primary navigation">
@@ -70,7 +75,7 @@ export function DenseSidebar({ user, orgName, orgInitial, sidebarSprints, counts
 
       <nav className="nav-section" aria-label="Main">
         {items.map((it) => {
-          const active = isNavLinkActive(pathname, it.href, it.exact ?? false);
+          const active = it.href === bestHref;
           return (
             <Link
               key={it.id}

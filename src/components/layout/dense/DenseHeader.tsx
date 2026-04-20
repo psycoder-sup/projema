@@ -67,13 +67,22 @@ export function DenseHeader({ orgName }: DenseHeaderProps) {
     }
     function isInOverlay(target: EventTarget | null): boolean {
       if (target instanceof HTMLElement) {
-        if (target.closest('[role="menu"],[role="menuitem"],[role="dialog"],[role="listbox"]')) {
+        if (
+          target.closest(
+            '[role="menu"],[role="menuitem"],[role="dialog"],[role="alertdialog"],[role="listbox"],[role="combobox"]',
+          )
+        ) {
           return true;
         }
       }
-      return document.querySelector(
-        '[data-state="open"][role="menu"], [data-state="open"][role="dialog"]',
-      ) !== null;
+      return (
+        document.querySelector(
+          '[data-state="open"][role="menu"],' +
+            '[data-state="open"][role="dialog"],' +
+            '[data-state="open"][role="alertdialog"],' +
+            '[data-state="open"][role="listbox"]',
+        ) !== null
+      );
     }
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'c' && e.key !== 'C') return;

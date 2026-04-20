@@ -52,11 +52,16 @@ export function ProgressArc({ pct, size = 180, stroke = 12 }: ProgressArcProps) 
       </svg>
       <div className="arc-center">
         <div>
-          <div className="arc-pct" aria-label={`${Math.round(animated)} percent complete`}>
-            {Math.round(animated)}
-            <span className="pct">%</span>
+          <div className="arc-pct">
+            <span className="sr-only">
+              {Math.round(animated)} percent complete — sprint progress
+            </span>
+            <span aria-hidden="true">
+              {Math.round(animated)}
+              <span className="pct">%</span>
+            </span>
           </div>
-          <div className="arc-label">Sprint complete</div>
+          <div className="arc-label" aria-hidden="true">Sprint complete</div>
         </div>
       </div>
     </div>
