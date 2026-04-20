@@ -1,129 +1,152 @@
-/**
- * TeamActivityCard — renders the last 15 activity events for the dashboard.
- * Brutalist: newspaper wire-feed style with mono timestamps and square avatar blocks.
- */
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { ActivityEvent } from '@/types/domain';
+import type { DashboardLookups, ActorEntry } from '@/lib/dashboard/lookups';
+import { DenseAvatar } from '@/components/layout/dense/DenseAvatar';
+import { DenseIcon } from '@/components/layout/dense/IconSprite';
+import { formatTimeAgo, shortId } from '@/components/layout/dense/utils';
 
 interface TeamActivityCardProps {
   events: ActivityEvent[];
+  lookups: DashboardLookups;
 }
 
-function formatRelativeTime(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'NOW';
-  if (minutes < 60) return `${minutes}M`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}H`;
-  const days = Math.floor(hours / 24);
-  return `${days}D`;
+interface ParsedEvent {
+  verb: string;
+  target: string;
+  asChip: boolean;
+  from: string | null;
+  to: string | null;
+  toUser: string | null;
 }
 
-function eventLabel(event: ActivityEvent): string {
-  const payload = event.payload as Record<string, unknown> | null;
+function parseEvent(
+  event: ActivityEvent,
+  actors: Record<string, ActorEntry>,
+): ParsedEvent {
+  const payload = (event.payload ?? {}) as Record<string, unknown>;
+  const targetTitle = (payload['title'] as string | undefined) ?? null;
+  const targetIdShort = event.targetTodoId
+    ? shortId(event.targetTodoId)
+    : event.targetSprintId
+      ? shortId(event.targetSprintId)
+      : '';
+  const targetText = targetTitle ?? (targetIdShort || 'item');
+
+  const base: ParsedEvent = {
+    verb: 'performed an action',
+    target: targetText,
+    asChip: false,
+    from: null,
+    to: null,
+    toUser: null,
+  };
 
   switch (event.kind) {
     case 'todo_created':
-      return 'created a todo';
+      return { ...base, verb: 'created' };
     case 'todo_status_changed': {
-      const from = payload?.['from'] as string | undefined;
-      const to = payload?.['to'] as string | undefined;
-      if (from && to) {
-        return `moved ${from.replace('_', '-')} → ${to.replace('_', '-')}`;
-      }
-      return 'changed todo status';
+      const from = payload['from'] as string | undefined;
+      const to = payload['to'] as string | undefined;
+      return {
+        ...base,
+        verb: 'moved',
+        from: from ? from.replace('_', '-') : null,
+        to: to ? to.replace('_', '-') : null,
+      };
     }
     case 'todo_assigned': {
-      return 'assigned a todo';
+      const toId = payload['assigneeUserId'] as string | undefined;
+      const toUser = toId
+        ? (actors[toId]?.displayName ?? actors[toId]?.email ?? null)
+        : null;
+      return { ...base, verb: 'assigned', toUser };
     }
     case 'comment_posted':
-      return 'commented on a todo';
+      return { ...base, verb: 'commented on' };
     case 'sprint_created':
-      return 'created a sprint';
+      return { ...base, verb: 'created sprint', asChip: true };
     case 'sprint_activated':
-      return 'activated a sprint';
+      return { ...base, verb: 'activated sprint', asChip: true };
     case 'sprint_completed':
-      return 'completed a sprint';
+      return { ...base, verb: 'completed sprint', asChip: true };
     default:
-      return 'performed an action';
+      return base;
   }
 }
 
-function eventKindTag(kind: ActivityEvent['kind']): string {
-  switch (kind) {
-    case 'todo_created':
-      return 'TODO.NEW';
-    case 'todo_status_changed':
-      return 'TODO.MOVE';
-    case 'todo_assigned':
-      return 'TODO.ASGN';
-    case 'comment_posted':
-      return 'TODO.CMT';
-    case 'sprint_created':
-      return 'SPRINT.NEW';
-    case 'sprint_activated':
-      return 'SPRINT.LIVE';
-    case 'sprint_completed':
-      return 'SPRINT.DONE';
-    default:
-      return 'EVENT';
-  }
-}
+function ActivityItem({
+  event,
+  lookups,
+}: {
+  event: ActivityEvent;
+  lookups: DashboardLookups;
+}) {
+  const actor = lookups.actors[event.actorUserId];
+  const parsed = parseEvent(event, lookups.actors);
 
-function ActivityEventRow({ event }: { event: ActivityEvent }) {
   return (
-    <li className="flex items-start gap-3 border-b-2 border-ink/60 py-2.5 last:border-b-0">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-ink bg-paper font-mono text-[11px] font-bold text-ink">
-        T
+    <div className="act">
+      <div className="act-ava">
+        <DenseAvatar
+          userId={event.actorUserId}
+          displayName={actor?.displayName ?? null}
+          email={actor?.email ?? null}
+          size="sm"
+        />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-snug">
-          <span className="font-semibold text-ink">Team member</span>{' '}
-          <span className="text-muted-foreground">{eventLabel(event)}</span>
-        </p>
-        <span className="mt-0.5 inline-block border border-ink bg-paper px-1 font-mono text-[9px] font-bold uppercase tracking-wider text-ink">
-          {eventKindTag(event.kind)}
-        </span>
+      <div className="act-body">
+        <b>{actor?.displayName ?? actor?.email ?? 'Someone'}</b>{' '}
+        <span>{parsed.verb}</span>{' '}
+        {parsed.asChip ? (
+          <span className="chip">{parsed.target}</span>
+        ) : (
+          <span className="target">{parsed.target}</span>
+        )}
+        {parsed.from && parsed.to && (
+          <>
+            {' '}
+            <span className="from">{parsed.from}</span> → <span className="to">{parsed.to}</span>
+          </>
+        )}
+        {parsed.toUser && (
+          <>
+            {' '}
+            <b>{parsed.toUser}</b>
+          </>
+        )}
       </div>
-      <span className="shrink-0 self-start font-mono text-[11px] font-bold tabular-nums text-ink">
-        {formatRelativeTime(event.createdAt)}
-      </span>
-    </li>
+      <div className="act-time">{formatTimeAgo(new Date(event.createdAt))}</div>
+    </div>
   );
 }
 
-export function TeamActivityCard({ events }: TeamActivityCardProps) {
+export function TeamActivityCard({ events, lookups }: TeamActivityCardProps) {
+  const visible = events.slice(0, 9);
+
   return (
-    <Card className="flex h-full flex-col shadow-brut" aria-label="Team activity">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="kicker">04 —</span>
-          <h2 className="font-display text-lg uppercase tracking-tight">Wire Feed</h2>
-        </div>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          <span aria-hidden className="h-1.5 w-1.5 animate-pulse bg-rust" />
-          live
+    <div className="dense-card" aria-label="Team activity">
+      <div className="card-head">
+        <span className="card-title">
+          <span className="idx">04 /</span> Team activity
         </span>
-      </CardHeader>
-      <CardContent className="flex-1">
-        {events.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 py-4">
-            <p className="font-display text-2xl uppercase leading-tight text-ink">
-              Silent wire.
-            </p>
-            <p className="font-sans text-sm text-muted-foreground">
-              Activity will appear here as your team uses the app.
-            </p>
+        <div className="card-head-right">
+          <span className="mini-link mini-link--muted">last 15 events</span>
+          <span className="mini-link">
+            Feed <DenseIcon id="i-chev-r" />
+          </span>
+        </div>
+      </div>
+      <div className="activity">
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <span className="t">Silent wire</span>
+            <span>Activity will appear here as your team uses the app.</span>
           </div>
         ) : (
-          <ul>
-            {events.map((event) => (
-              <ActivityEventRow key={event.id} event={event} />
-            ))}
-          </ul>
+          visible.map((event) => (
+            <ActivityItem key={event.id} event={event} lookups={lookups} />
+          ))
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

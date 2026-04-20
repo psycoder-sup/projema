@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
-import { Archivo_Black, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google';
+import {
+  Archivo_Black,
+  IBM_Plex_Sans,
+  Instrument_Serif,
+  JetBrains_Mono,
+} from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import '../styles/globals.css';
+import '../styles/dense.css';
 import { Providers } from '@/lib/query-client';
 
 const display = Archivo_Black({
@@ -24,6 +32,14 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+const serif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'Projema — Sprint & Todo Control',
   description: 'Team sprint and todo management',
@@ -37,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+      className={`${display.variable} ${sans.variable} ${mono.variable} ${GeistSans.variable} ${GeistMono.variable} ${serif.variable}`}
     >
       <body>
         <Providers>{children}</Providers>

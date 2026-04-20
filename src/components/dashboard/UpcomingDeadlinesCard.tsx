@@ -1,129 +1,81 @@
-/**
- * Upcoming Deadlines dashboard card — Phase 5 (FR-20).
- * Todos due within 7 days, status != done, any assignee, cap 15.
- * Brutalist: calendar-strip layout with day block per todo.
- */
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 import type { Todo } from '@/types/domain';
+import type { DashboardLookups } from '@/lib/dashboard/lookups';
+import {
+  diffDaysIso,
+  dueLabel,
+  parseIsoDate,
+  shortId,
+  shortMonth,
+} from '@/components/layout/dense/utils';
 
 interface UpcomingDeadlinesCardProps {
   todos: Todo[];
+  lookups: DashboardLookups;
 }
 
-function priorityLabel(priority: Todo['priority']): string {
-  switch (priority) {
-    case 'high':
-      return 'High';
-    case 'medium':
-      return 'Med';
-    case 'low':
-      return 'Low';
-  }
-}
+function DeadlineRow({ todo, lookups }: { todo: Todo; lookups: DashboardLookups }) {
+  if (!todo.dueDate) return null;
 
-function priorityVariant(
-  priority: Todo['priority'],
-): 'destructive' | 'secondary' | 'outline' {
-  switch (priority) {
-    case 'high':
-      return 'destructive';
-    case 'medium':
-      return 'secondary';
-    case 'low':
-      return 'outline';
-  }
-}
+  const date = parseIsoDate(todo.dueDate);
+  const diff = diffDaysIso(todo.dueDate, lookups.todayIso);
+  const due = dueLabel(diff);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = shortMonth(date.getUTCMonth());
 
-function formatDayBlock(dateStr: string | null | undefined): {
-  day: string;
-  month: string;
-} {
-  if (!dateStr) return { day: '——', month: '——' };
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return { day: '——', month: '——' };
-  return {
-    day: String(d.getDate()).padStart(2, '0'),
-    month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-  };
-}
-
-function daysUntil(dateStr: string | null | undefined): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '';
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
-  const diff = Math.round((d.getTime() - today.getTime()) / 86_400_000);
-  if (diff < 0) return `${Math.abs(diff)}d OVERDUE`;
-  if (diff === 0) return 'TODAY';
-  if (diff === 1) return 'TOMORROW';
-  return `IN ${diff}D`;
-}
-
-function DeadlineRow({ todo }: { todo: Todo }) {
-  const block = formatDayBlock(todo.dueDate);
-  const urgency = daysUntil(todo.dueDate);
-  const isOverdue = urgency.includes('OVERDUE') || urgency === 'TODAY';
+  const assignee = todo.assigneeUserId ? lookups.actors[todo.assigneeUserId] : undefined;
+  const goal = todo.sprintGoalId ? lookups.goals[todo.sprintGoalId] : undefined;
 
   return (
-    <li className="flex items-stretch gap-3 border-b-2 border-ink/60 py-3 last:border-b-0">
-      <div
-        className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center border-2 border-ink ${
-          isOverdue ? 'bg-rust text-white' : 'bg-paper text-ink'
-        }`}
-      >
-        <span className="font-display text-xl leading-none tabular-nums">{block.day}</span>
-        <span className="mt-0.5 font-mono text-[9px] font-bold tracking-widest">
-          {block.month}
-        </span>
+    <Link href={`/todos/${todo.id}`} className={`deadline ${due.cls}`} aria-label={todo.title}>
+      <div className="deadline-date">
+        <div className="d">{day}</div>
+        <div className="m">{month}</div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink">{todo.title}</p>
-        <p className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
-          <span className={isOverdue ? 'font-bold text-rust' : 'text-muted-foreground'}>
-            {urgency}
+      <div className="deadline-body">
+        <div className="t">{todo.title}</div>
+        <div className="s">
+          <span>{shortId(todo.id)}</span>
+          {assignee && (
+            <>
+              <span className="sep">·</span>
+              <span>{assignee.displayName ?? assignee.email ?? 'Unknown'}</span>
+            </>
+          )}
+          <span className="sep">·</span>
+          <span className={goal ? 'deadline-goal' : 'deadline-goal--empty'}>
+            {goal?.name ?? 'Backlog'}
           </span>
-        </p>
+        </div>
       </div>
-      <Badge variant={priorityVariant(todo.priority)} className="shrink-0 self-start">
-        {priorityLabel(todo.priority)}
-      </Badge>
-    </li>
+      <div className={`todo-due ${due.cls}`}>{due.text}</div>
+    </Link>
   );
 }
 
-export function UpcomingDeadlinesCard({ todos }: UpcomingDeadlinesCardProps) {
+export function UpcomingDeadlinesCard({ todos, lookups }: UpcomingDeadlinesCardProps) {
+  const visible = todos.slice(0, 5);
+
   return (
-    <Card className="flex h-full flex-col shadow-brut" aria-label="Upcoming deadlines">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="kicker">03 —</span>
-          <h2 className="font-display text-lg uppercase tracking-tight">Burning</h2>
-        </div>
-        <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-          Next 7 days
+    <div className="dense-card" aria-label="Upcoming deadlines">
+      <div className="card-head">
+        <span className="card-title">
+          <span className="idx">03 /</span> Upcoming deadlines
         </span>
-      </CardHeader>
-      <CardContent className="flex-1">
-        {todos.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 py-4">
-            <p className="font-display text-2xl uppercase leading-tight text-ink">
-              Nothing burning.
-            </p>
-            <p className="font-sans text-sm text-muted-foreground">
-              No todos due in the next 7 days.
-            </p>
+        <div className="card-head-right">
+          <span className="mini-link mini-link--muted">next 7 days</span>
+        </div>
+      </div>
+      <div className="deadlines">
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <span className="t">Nothing burning</span>
+            <span>No todos due in the next 7 days.</span>
           </div>
         ) : (
-          <ul>
-            {todos.map((todo) => (
-              <DeadlineRow key={todo.id} todo={todo} />
-            ))}
-          </ul>
+          visible.map((t) => <DeadlineRow key={t.id} todo={t} lookups={lookups} />)
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -64,9 +64,9 @@ describe('Empty-state copy — PRD §6 source of truth', () => {
   });
 
   // PRD: "You're all caught up."
-  // BellMenu uses JSX &apos; entity for the apostrophe, so match either form.
-  test('BellMenu — notifications empty-state copy', () => {
-    const src = readSrc('src/components/layout/BellMenu.tsx');
+  // DenseBellMenu uses JSX &apos; entity for the apostrophe, so match either form.
+  test('DenseBellMenu — notifications empty-state copy', () => {
+    const src = readSrc('src/components/layout/dense/DenseBellMenu.tsx');
     expect(src).toMatch(/You(&apos;|'|&#39;)re all caught up/i);
   });
 });

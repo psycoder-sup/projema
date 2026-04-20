@@ -1,150 +1,267 @@
-/**
- * Active Sprint dashboard card — Phase 5 (FR-20).
- * Brutalist treatment: segmented progress bar, mono dates, acid accent on active.
- */
 import Link from 'next/link';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { DashboardData } from '@/types/domain';
+import { DenseIcon } from '@/components/layout/dense/IconSprite';
+import { goalColor, parseIsoDate, shortMonth } from '@/components/layout/dense/utils';
+import { ProgressArc } from './dense/ProgressArc';
+import { GoalRow } from './dense/GoalRow';
 
-type ActiveSprintData = NonNullable<DashboardData['activeSprint']>;
+const UNASSIGNED_KEY = '__unassigned__';
 
 interface ActiveSprintCardProps {
   data: DashboardData['activeSprint'];
+  totalDays: number;
+  todayIndex: number;
 }
 
-function SegmentBar({ done, total }: { done: number; total: number }) {
-  const segments = Math.max(total, 1);
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+interface DayCell {
+  dayNum: number;
+  cal: number;
+  monthIdx: number;
+  isWeekend: boolean;
+  past: boolean;
+  today: boolean;
+}
+
+function buildDays(
+  startDate: string,
+  endDate: string,
+  totalDays: number,
+  todayIndex: number,
+): {
+  cells: DayCell[];
+  startLabel: string;
+  endLabel: string;
+} {
+  const start = parseIsoDate(startDate);
+  const end = parseIsoDate(endDate);
+  const dayMs = 86_400_000;
+
+  const cells: DayCell[] = [];
+  for (let i = 0; i < totalDays; i++) {
+    const cellDate = new Date(start.getTime() + i * dayMs);
+    const dow = cellDate.getUTCDay();
+    cells.push({
+      dayNum: i + 1,
+      cal: cellDate.getUTCDate(),
+      monthIdx: cellDate.getUTCMonth(),
+      isWeekend: dow === 0 || dow === 6,
+      past: i + 1 < todayIndex,
+      today: i + 1 === todayIndex,
+    });
+  }
+
+  const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const fmt = (d: Date) => {
+    const dow = dows[d.getUTCDay()] ?? '';
+    return `${dow} ${d.getUTCDate()} ${shortMonth(d.getUTCMonth())}`;
+  };
+
+  return {
+    cells,
+    startLabel: `${fmt(start)} · start`,
+    endLabel: `${fmt(end)} · end`,
+  };
+}
+
+function SprintTimeline({
+  startDate,
+  endDate,
+  totalDays,
+  todayIndex,
+}: {
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  todayIndex: number;
+}) {
+  const { cells, startLabel, endLabel } = buildDays(startDate, endDate, totalDays, todayIndex);
+  const todayLabel =
+    todayIndex === 0
+      ? 'before start'
+      : todayIndex > totalDays
+        ? 'sprint ended'
+        : `Day ${todayIndex} of ${totalDays} · today`;
   return (
-    <div
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      className="flex h-4 w-full border-2 border-ink"
-    >
-      {Array.from({ length: segments }).map((_, i) => {
-        const filled = i < done;
-        return (
-          <div
-            key={i}
-            className={`flex-1 ${filled ? 'bg-acid' : 'bg-paper'} ${
-              i !== segments - 1 ? 'border-r-2 border-ink' : ''
-            }`}
-          />
-        );
-      })}
+    <div className="timeline" aria-label={`Sprint timeline, day ${todayIndex} of ${totalDays}`}>
+      <div
+        className="timeline-ticks"
+        style={{ gridTemplateColumns: `repeat(${totalDays}, 1fr)` }}
+      >
+        {cells.map((d) => {
+          const cls = ['tick'];
+          if (d.past) cls.push('past');
+          if (d.today) cls.push('today');
+          if (d.isWeekend) cls.push('weekend');
+          return (
+            <div
+              key={d.dayNum}
+              className={cls.join(' ')}
+              title={`Day ${d.dayNum} · ${shortMonth(d.monthIdx)} ${d.cal}`}
+            >
+              <div className="d">{d.cal}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="timeline-labels">
+        <span>{startLabel}</span>
+        <span>{todayLabel}</span>
+        <span>{endLabel}</span>
+      </div>
     </div>
   );
 }
 
-function GoalProgressRow({
-  name,
-  done,
-  total,
-}: {
-  name: string;
-  done: number;
-  total: number;
-}) {
+function EmptySprint() {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate text-sm font-medium text-foreground">{name}</span>
-        <span className="shrink-0 font-mono text-[11px] font-bold tabular-nums text-ink">
-          {String(done).padStart(2, '0')}/{String(total).padStart(2, '0')}
+    <div className="dense-card span-2" aria-label="Active sprint">
+      <div className="card-head">
+        <span className="card-title">
+          <span className="idx">01 /</span> Active sprint
         </span>
       </div>
-      <SegmentBar done={done} total={total} />
+      <div className="empty-state">
+        <span className="t">No active sprint</span>
+        <span>Plan a sprint to start tracking goals.</span>
+        <Link href="/sprints/new" className="mini-link mini-link--spaced-lg">
+          + Create sprint
+        </Link>
+      </div>
     </div>
   );
 }
 
-function ActiveSprintContent({ data }: { data: ActiveSprintData }) {
+export function ActiveSprintCard({ data, totalDays, todayIndex }: ActiveSprintCardProps) {
+  if (data === null) {
+    return <EmptySprint />;
+  }
+
   const { sprint, goalProgress, overall } = data;
-  const overallPct = overall.total === 0 ? 0 : Math.round((overall.done / overall.total) * 100);
+
+  const beforeStart = todayIndex === 0;
+  const afterEnd = todayIndex > totalDays;
+  const inWindow = !beforeStart && !afterEnd;
+
+  const pct = overall.total === 0 ? 0 : (overall.done / overall.total) * 100;
+  const elapsedDays = inWindow ? todayIndex : afterEnd ? totalDays : 0;
+  const remaining = Math.max(0, totalDays - elapsedDays);
+  const timePct = (elapsedDays / totalDays) * 100;
+  const pace = pct - timePct;
+  const paceLabel =
+    Math.abs(pace) < 1
+      ? 'on pace'
+      : pace >= 0
+        ? `+${Math.round(pace)}% ahead of pace`
+        : `${Math.round(pace)}% behind pace`;
+
+  const fmtDate = (iso: string) => {
+    const d = parseIsoDate(iso);
+    return `${shortMonth(d.getUTCMonth())} ${d.getUTCDate()}`;
+  };
 
   return (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-xl uppercase leading-tight text-ink">
-            {sprint.name}
-          </p>
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            {sprint.startDate}
-            <span className="mx-1.5 text-ink">→</span>
-            {sprint.endDate}
-          </p>
-        </div>
-        <Badge variant="acid" className="shrink-0">
-          ● Live
-        </Badge>
-      </div>
-
-      {/* Overall — big number, inline */}
-      <div className="mt-5 border-2 border-ink bg-paper p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="kicker">Overall</span>
-          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {overall.done}/{overall.total}
-          </span>
-        </div>
-        <div className="mt-1 flex items-baseline gap-3">
-          <span className="font-display text-5xl leading-none tabular-nums">{overallPct}</span>
-          <span className="font-display text-xl leading-none text-muted-foreground">%</span>
-        </div>
-        <div className="mt-3">
-          <SegmentBar done={overall.done} total={Math.max(overall.total, 1)} />
+    <div className="dense-card span-2" aria-label="Active sprint">
+      <div className="card-head">
+        <span className="card-title">
+          <span className="idx">01 /</span> Active sprint
+        </span>
+        <div className="card-head-right">
+          <Link href={`/sprints/${sprint.id}`} className="mini-link">
+            <DenseIcon id="i-log" /> Log
+          </Link>
+          <Link href={`/sprints/${sprint.id}`} className="mini-link">
+            Details <DenseIcon id="i-chev-r" />
+          </Link>
         </div>
       </div>
-
-      {goalProgress.length > 0 && (
-        <div className="mt-5 space-y-4">
-          <p className="kicker">Goals</p>
-          {goalProgress.map((gp) => (
-            <GoalProgressRow
-              key={gp.goalId ?? '__unassigned__'}
-              name={gp.name}
-              done={gp.done}
-              total={gp.total}
-            />
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-export function ActiveSprintCard({ data }: ActiveSprintCardProps) {
-  return (
-    <Card className="flex h-full flex-col shadow-brut" aria-label="Active sprint">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="kicker">01 —</span>
-          <h2 className="font-display text-lg uppercase tracking-tight">Active Sprint</h2>
-        </div>
-        <span aria-hidden className="h-3 w-3 bg-acid border-2 border-ink" />
-      </CardHeader>
-      <CardContent className="flex-1">
-        {data === null ? (
-          <div className="flex flex-col items-start gap-4 py-4">
-            <p className="font-display text-2xl uppercase leading-tight text-ink">
-              No active sprint.
-            </p>
-            <p className="font-sans text-sm text-muted-foreground">
-              No active sprint — plan one to start tracking goals.
-            </p>
-            <Button asChild size="sm" variant="acid">
-              <Link href="/sprints/new">+ Create sprint</Link>
-            </Button>
+      <div className="sprint">
+        <div className="sprint-head">
+          <div className="sprint-meta">
+            <div className="sprint-name">
+              {sprint.name}
+              <span className="badge active">Active</span>
+            </div>
+            <div className="sprint-sub">
+              <span>{fmtDate(sprint.startDate)} → {fmtDate(sprint.endDate)}</span>
+              <span className="dot-sep" />
+              <span>
+                {afterEnd
+                  ? 'ended'
+                  : remaining === 0
+                    ? 'final day'
+                    : `${remaining} day${remaining === 1 ? '' : 's'} remaining`}
+              </span>
+              <span className="dot-sep" />
+              <span className="live-dot">live</span>
+            </div>
           </div>
-        ) : (
-          <ActiveSprintContent data={data} />
-        )}
-      </CardContent>
-    </Card>
+          <div className="sprint-nums">
+            <div className="num-block">
+              <div className="n">
+                {overall.done}
+                <span className="tot">/{overall.total}</span>
+              </div>
+              <div className="l">Todos done</div>
+            </div>
+            <div className="num-block">
+              <div className="n">{goalProgress.length}</div>
+              <div className="l">Goals</div>
+            </div>
+            <div className="num-block">
+              <div className="n">
+                {beforeStart ? (
+                  <>—</>
+                ) : (
+                  <>
+                    {elapsedDays}
+                    <span className="tot">/{totalDays}</span>
+                  </>
+                )}
+              </div>
+              <div className="l">Day</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="sprint-main">
+          <div className="sprint-main-col">
+            <SprintTimeline
+              startDate={sprint.startDate}
+              endDate={sprint.endDate}
+              totalDays={totalDays}
+              todayIndex={todayIndex}
+            />
+            <div className="goals-head">
+              <span className="t">Goals</span>
+              <span className="line" />
+              <span className="t t--dim">{goalProgress.length} tracked</span>
+            </div>
+            <div className="goals">
+              {goalProgress.length === 0 ? (
+                <div className="empty-state empty-state--inline">
+                  <span>No goals yet — add some to start tracking progress.</span>
+                </div>
+              ) : (
+                goalProgress.map((gp, i) => (
+                  <GoalRow
+                    key={gp.goalId ?? `${UNASSIGNED_KEY}${i}`}
+                    name={gp.name}
+                    done={gp.done}
+                    total={gp.total}
+                    color={goalColor(i)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+          <div className="sprint-main-arc">
+            <ProgressArc pct={pct} />
+            {overall.total > 0 && inWindow && (
+              <div className={`arc-pace ${pace < 0 ? 'behind' : ''}`}>{paceLabel}</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

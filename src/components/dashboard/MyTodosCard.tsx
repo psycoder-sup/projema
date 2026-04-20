@@ -1,114 +1,87 @@
-/**
- * My Todos dashboard card — Phase 5 (FR-20).
- * Brutalist ticket list: mono index, priority block, status badge.
- * Empty state: "Nothing on your plate."
- */
 import Link from 'next/link';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { Todo } from '@/types/domain';
+import type { DashboardLookups } from '@/lib/dashboard/lookups';
+import { DenseIcon } from '@/components/layout/dense/IconSprite';
+import { diffDaysIso, dueLabel, goalColor, shortId } from '@/components/layout/dense/utils';
 
 interface MyTodosCardProps {
   todos: Todo[];
+  lookups: DashboardLookups;
 }
 
-function statusVariant(status: Todo['status']): 'default' | 'secondary' | 'outline' | 'acid' {
-  switch (status) {
-    case 'done':
-      return 'outline';
-    case 'in_progress':
-      return 'acid';
-    default:
-      return 'secondary';
-  }
+function statusToCheckClass(status: Todo['status']): string {
+  if (status === 'done') return 'check done';
+  if (status === 'in_progress') return 'check in-progress';
+  return 'check';
 }
 
-function statusLabel(status: Todo['status']): string {
-  switch (status) {
-    case 'todo':
-      return 'Todo';
-    case 'in_progress':
-      return 'Doing';
-    case 'done':
-      return 'Done';
-  }
+function shortGoalName(name: string, words = 3): string {
+  return name.split(/\s+/).slice(0, words).join(' ');
 }
 
-function priorityGlyph(priority: Todo['priority']): { bg: string; char: string; label: string } {
-  switch (priority) {
-    case 'high':
-      return { bg: 'bg-rust text-white', char: 'H', label: 'High priority' };
-    case 'medium':
-      return { bg: 'bg-acid text-ink', char: 'M', label: 'Medium priority' };
-    case 'low':
-      return { bg: 'bg-paper text-ink', char: 'L', label: 'Low priority' };
-  }
-}
+function TodoRow({ todo, lookups }: { todo: Todo; lookups: DashboardLookups }) {
+  const diff = todo.dueDate ? diffDaysIso(todo.dueDate, lookups.todayIso) : null;
+  const due = dueLabel(diff);
+  const goal = todo.sprintGoalId ? lookups.goals[todo.sprintGoalId] : undefined;
+  const goalC = goal ? goalColor(goal.index) : 'var(--fg-4)';
 
-function TodoRow({ todo, index }: { todo: Todo; index: number }) {
-  const prio = priorityGlyph(todo.priority);
   return (
-    <li className="flex items-stretch gap-3 border-b-2 border-ink/60 py-3 last:border-b-0">
-      <span className="font-mono text-[11px] font-bold tabular-nums text-muted-foreground pt-1">
-        {String(index + 1).padStart(2, '0')}
-      </span>
+    <Link href={`/todos/${todo.id}`} className="todo-row" aria-label={todo.title}>
       <span
-        aria-label={prio.label}
-        className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 border-ink font-mono text-[11px] font-bold ${prio.bg}`}
-      >
-        {prio.char}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink">{todo.title}</p>
-        {todo.dueDate && (
-          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Due · {todo.dueDate}
-          </p>
+        className={statusToCheckClass(todo.status)}
+        role="img"
+        aria-label={todo.status.replace('_', ' ')}
+      />
+      <span className="priority" data-p={todo.priority} aria-hidden />
+      <div className="todo-title">{todo.title}</div>
+      <div className="todo-meta">
+        {goal ? (
+          <span className="todo-tag">
+            <span className="dot" style={{ ['--dot-c' as string]: goalC }} />
+            {shortGoalName(goal.name)}
+          </span>
+        ) : (
+          <span className="todo-tag todo-tag--backlog">
+            <span className="dot" />
+            Backlog
+          </span>
         )}
       </div>
-      <Badge variant={statusVariant(todo.status)} className="shrink-0 self-start">
-        {statusLabel(todo.status)}
-      </Badge>
-    </li>
+      <div className={`todo-due ${due.cls}`}>{due.text}</div>
+      <span className="todo-id">{shortId(todo.id)}</span>
+    </Link>
   );
 }
 
-export function MyTodosCard({ todos }: MyTodosCardProps) {
+export function MyTodosCard({ todos, lookups }: MyTodosCardProps) {
+  const visible = todos.slice(0, 7);
+
   return (
-    <Card className="flex h-full flex-col shadow-brut" aria-label="My todos">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="kicker">02 —</span>
-          <h2 className="font-display text-lg uppercase tracking-tight">Your Plate</h2>
-        </div>
-        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-          {String(todos.length).padStart(2, '0')} items
+    <div className="dense-card" aria-label="My todos">
+      <div className="card-head">
+        <span className="card-title">
+          <span className="idx">02 /</span> My todos
         </span>
-      </CardHeader>
-      <CardContent className="flex-1">
-        {todos.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 py-4">
-            <p className="font-display text-2xl uppercase leading-tight text-ink">
-              Nothing on your plate.
-            </p>
-            <p className="font-sans text-sm text-muted-foreground">
-              Nothing on your plate. Pick up a todo from the sprint board or create one.
-            </p>
-            <Link
-              href="/todos"
-              className="font-mono text-xs font-bold uppercase tracking-wider text-ink underline decoration-2 underline-offset-4 hover:decoration-acid"
-            >
-              → View backlog
+        <div className="card-head-right">
+          <span className="mini-link mini-link--muted">{todos.length} active</span>
+          <Link href="/todos/mine" className="mini-link">
+            View all <DenseIcon id="i-chev-r" />
+          </Link>
+        </div>
+      </div>
+      <div className="todos-list">
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <span className="t">Nothing on your plate</span>
+            <span>Pick up a todo from the backlog or create a new one.</span>
+            <Link href="/todos" className="mini-link mini-link--spaced">
+              View backlog <DenseIcon id="i-chev-r" />
             </Link>
           </div>
         ) : (
-          <ul>
-            {todos.map((todo, i) => (
-              <TodoRow key={todo.id} todo={todo} index={i} />
-            ))}
-          </ul>
+          visible.map((t) => <TodoRow key={t.id} todo={t} lookups={lookups} />)
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

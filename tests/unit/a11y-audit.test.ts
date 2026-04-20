@@ -12,21 +12,21 @@ function readSrc(relativePath: string): string {
 
 describe('Accessibility audit — static source checks', () => {
   // Bell menu: icon-only button must have aria-label
-  test('BellMenu — Bell button has aria-label', () => {
-    const src = readSrc('src/components/layout/BellMenu.tsx');
+  test('DenseBellMenu — Bell button has aria-label', () => {
+    const src = readSrc('src/components/layout/dense/DenseBellMenu.tsx');
     expect(src).toMatch(/aria-label/);
   });
 
-  // App layout: user avatar button must have aria-label
-  test('AppLayout — user avatar button has aria-label', () => {
-    const src = readSrc('src/app/(app)/layout.tsx');
+  // App shell (sidebar): primary nav region must have an aria-label
+  test('Sidebar — primary nav has aria-label', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
     expect(src).toMatch(/aria-label/);
   });
 
-  // App layout: nav must have aria-label="Main navigation"
-  test('AppLayout — nav has aria-label="Main navigation"', () => {
-    const src = readSrc('src/app/(app)/layout.tsx');
-    expect(src).toMatch(/aria-label="Main navigation"/i);
+  // App shell (sidebar): the navigation region labels itself "Primary" / "Main"
+  test('Sidebar — labels primary navigation region', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
+    expect(src).toMatch(/aria-label="(Primary navigation|Main|Main navigation)"/i);
   });
 
   // App layout: has a skip-link to main content
@@ -60,5 +60,18 @@ describe('Accessibility audit — static source checks', () => {
   test('AppLayout — main element has id for skip-link target', () => {
     const src = readSrc('src/app/(app)/layout.tsx');
     expect(src).toMatch(/id="main-content"/);
+  });
+
+  // FR-04: account menu must expose a Sign out action on every authed route.
+  test('DenseAccountMenu — exposes Account menu trigger + Sign out item', () => {
+    const src = readSrc('src/components/layout/dense/DenseAccountMenu.tsx');
+    expect(src).toMatch(/aria-label="Account menu"/);
+    expect(src).toMatch(/Sign out/);
+    expect(src).toMatch(/signOut\s*\(/);
+  });
+
+  test('DenseSidebar — renders the DenseAccountMenu', () => {
+    const src = readSrc('src/components/layout/dense/DenseSidebar.tsx');
+    expect(src).toMatch(/DenseAccountMenu/);
   });
 });

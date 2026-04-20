@@ -1,46 +1,49 @@
-/**
- * Dashboard loading skeleton — Phase 5 (FR-20).
- * Renders skeleton cards while getDashboardData resolves.
- * Target: visible for ≤ 800ms per PRD §6.
- */
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-
-function SkeletonCard({ rows = 4 }: { rows?: number }) {
+function SkeletonLine({ width = '100%', height = 10 }: { width?: string | number; height?: number }) {
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2">
-        <Skeleton className="h-5 w-32" />
-      </CardHeader>
-      <CardContent className="flex-1 space-y-3 pt-0">
+    <div
+      style={{
+        width,
+        height,
+        background: 'var(--bg-3)',
+        borderRadius: 4,
+      }}
+      aria-hidden
+    />
+  );
+}
+
+function DenseSkeletonCard({ rows = 4, span = 1 }: { rows?: number; span?: 1 | 2 }) {
+  return (
+    <div className={`dense-card${span === 2 ? ' span-2' : ''}`} aria-hidden>
+      <div className="card-head">
+        <SkeletonLine width={120} height={11} />
+      </div>
+      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="space-y-1.5">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-3 w-2/3" />
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <SkeletonLine height={12} />
+            <SkeletonLine width="60%" height={9} />
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 export default function DashboardLoading() {
   return (
-    <div className="p-4 lg:p-6 space-y-4">
-      <Skeleton className="h-8 w-40" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-4 lg:gap-6">
-        <div className="lg:row-start-1 lg:col-start-1">
-          <SkeletonCard rows={5} />
+    <div className="dash">
+      <div className="dash-title-row">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SkeletonLine width={280} height={22} />
+          <SkeletonLine width={220} height={11} />
         </div>
-        <div className="lg:row-start-1 lg:col-start-2">
-          <SkeletonCard rows={4} />
-        </div>
-        <div className="lg:row-start-2 lg:col-start-1">
-          <SkeletonCard rows={3} />
-        </div>
-        <div className="lg:row-start-2 lg:col-start-2">
-          <SkeletonCard rows={4} />
-        </div>
+      </div>
+      <div className="grid">
+        <DenseSkeletonCard rows={6} span={2} />
+        <DenseSkeletonCard rows={5} />
+        <DenseSkeletonCard rows={4} />
+        <DenseSkeletonCard rows={5} />
       </div>
     </div>
   );

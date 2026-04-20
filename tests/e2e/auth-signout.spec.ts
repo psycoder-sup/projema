@@ -61,9 +61,14 @@ test.skip(
     //    Auth.js `sessions` row, store the session token.
     // 2. In the test: call page.context().addCookies([{ name: 'authjs.session-token', value: token, ... }])
     // 3. Navigate to /dashboard — should land without redirect.
-    // 4. Click the user avatar button (aria-label="Account menu").
+    // 4. Click the "Account menu" trigger in the sidebar me-card.
     // 5. Assert getByRole('menuitem', { name: /sign out/i }) is visible.
     // 6. Click Sign out → assert redirect to /sign-in.
+    //
+    // The markup is now wired — `DenseAccountMenu` renders a button with
+    // aria-label="Account menu" and a Radix menuitem "Sign out". This block
+    // stays skipped only because the cookie-injection harness doesn't exist
+    // yet, not because the UI is missing.
     await page.goto('/dashboard');
     await page.getByRole('button', { name: /account menu/i }).click();
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
